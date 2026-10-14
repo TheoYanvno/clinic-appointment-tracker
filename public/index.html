@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clinic Appointment Tracker</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header><h1>Clinic Appointment Tracker</h1></header>
+  <main>
+    <section>
+      <label>Day <input type="date" id="day" value="2026-10-19"></label>
+      <p id="summary"></p>
+      <table>
+        <thead><tr><th>Time</th><th>Patient</th><th>Provider</th><th>Reason</th><th>Status</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+    <section>
+      <h2>Book an appointment</h2>
+      <form id="book">
+        <select id="patient" required></select>
+        <select id="provider" required></select>
+        <input id="startsAt" type="datetime-local" required>
+        <input id="reason" placeholder="Reason for visit" required>
+        <button>Book</button>
+      </form>
+      <p id="message" role="status"></p>
+    </section>
+    <section>
+      <h2>Provider workload</h2>
+      <ul id="workload"></ul>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
