@@ -144,6 +144,11 @@ export class ClinicRepository {
     }
   }
 
+  /** Saves (or with null, removes) the patient's photo. */
+  setPhoto(id, photo) {
+    return this.db.run('UPDATE patients SET photo = ? WHERE id = ?', [photo, id]).changes === 1;
+  }
+
   // ---------- Appointments ----------
 
   /** Appointments from `from` to `to` (inclusive dates), optionally for one provider. */

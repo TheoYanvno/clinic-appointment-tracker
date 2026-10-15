@@ -70,3 +70,19 @@ for (const [engine, open] of ENGINES) {
     assert.strictEqual(api('GET', '/api/patients/999999').status, 404);
   });
 }
+
+for (const [engine, open] of ENGINES) {
+  test(`${engine}: patient photo can be saved, replaced and removed`, () => {
+    const db = clinic(open);
+    const api = (method, path, body) => handle(db, { method, path, body, today: '2026-10-15', now: NOW });
+    const photo = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==';
+    assert.strictEqual(api('PUT', '/api/patients/1/photo', { photo }).status, 200);
+    assert.strictEqual(api('GET', '/api/patients/1').body.photo, photo);
+    assert.strictEqual(handle(db, { path: '/api/patients', query: { q: 'Bruce Wayne' } }).body[0].hasPhoto, 1);
+    assert.strictEqual(api('PUT', '/api/patients/1/photo', { photo: 'data:text/html;base64,PHNjcmlwdD4=' }).status, 400);
+    assert.strictEqual(api('PUT', '/api/patients/1/photo', { photo: `data:image/png;base64,${'A'.repeat(500_000)}` }).status, 400);
+    assert.strictEqual(api('PUT', '/api/patients/1/photo', { photo: null }).status, 200);
+    assert.strictEqual(api('GET', '/api/patients/1').body.photo, null);
+    assert.strictEqual(api('PUT', '/api/patients/999999/photo', { photo }).status, 404);
+  });
+}

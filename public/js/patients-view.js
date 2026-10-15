@@ -3,10 +3,12 @@ import { api } from './api.js';
 import { $, esc, avatar, usDate, ageOn, clockTime, statusBadge, now } from './ui.js';
 import { openBooking } from './booking.js';
 import { openAppointment } from './appointment.js';
+import { resizePhoto } from './patient-form.js';
+import { toast } from './ui.js';
 
 export async function renderPatientList(main, params) {
   main.innerHTML = `
-    <div class="page-head"><h1>Patients</h1></div>
+    <div class="page-head"><h1>Patients</h1><a class="btn primary" href="#/patients/new">+ New patient</a></div>
     <div class="toolbar"><input type="search" id="patientSearch" placeholder="Search by name, MRN (GH-104200) or date of birth (YYYY-MM-DD)" value="${esc(params.q ?? '')}" style="flex:1;max-width:520px" aria-label="Search patients"></div>
     <ul class="patient-list" id="patientResults"></ul>`;
   let timer;
@@ -31,13 +33,14 @@ export async function renderPatient(main, id) {
   main.innerHTML = `
     <p><a href="#/patients">← All patients</a></p>
     <section class="card" style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
-      ${avatar(name, p.photo, 'lg')}
+      <div class="photo-wrap">${avatar(name, p.photo, 'lg')}
+        <label class="photo-change" title="${p.photo ? 'Change photo' : 'Add photo'}">${p.photo ? 'Change' : 'Add photo'}<input type="file" id="quickPhoto" accept="image/jpeg,image/png,image/webp" hidden></label></div>
       <div style="flex:1;min-width:220px">
         <h1>${esc(name)}</h1>
         <p class="muted">${esc(p.mrn)} · DOB ${usDate(p.birth_date)} (${ageOn(p.birth_date)} years) · ${{ F: 'Female', M: 'Male', X: 'X' }[p.sex]}</p>
         <p>Primary care: <strong>${esc(p.primary_provider ?? 'None')}</strong></p>
       </div>
-      <button class="btn primary" id="bookForPatient">+ Book appointment</button>
+      <div class="status-actions"><a class="btn" href="#/patients/${p.id}/edit">Edit profile</a><button class="btn primary" id="bookForPatient">+ Book appointment</button></div>
     </section>
     <div class="row" style="margin-top:14px;gap:14px">
       <section class="card"><h2>Contact</h2><dl class="detail-list">
@@ -60,4 +63,13 @@ export async function renderPatient(main, id) {
   const refresh = () => renderPatient(main, id);
   $('#bookForPatient').onclick = () => openBooking({ patientId: p.id, patientName: name, providerId: p.primary_provider_id }, refresh);
   main.querySelectorAll('[data-appt]').forEach((b) => { b.onclick = () => openAppointment(Number(b.dataset.appt), refresh); });
+  $('#quickPhoto').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      await api(`/api/patients/${p.id}/photo`, { method: 'PUT', body: { photo: await resizePhoto(file) } });
+      toast('Photo updated');
+      refresh();
+    } catch (err) { toast(err.message, { error: true }); }
+  };
 }

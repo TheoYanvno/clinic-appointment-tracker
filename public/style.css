@@ -196,3 +196,16 @@ textarea { width: 100%; min-height: 70px; resize: vertical; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Patient form and photo ---------- */
+.patient-form { display: grid; gap: 14px; }
+.patient-form .card h2 { margin-bottom: 10px; }
+.patient-form h3 { margin: 6px 0 8px; color: var(--muted); font-size: .9rem; text-transform: uppercase; letter-spacing: .05em; }
+.insurance-card { margin: 0; }
+.insurance-card legend { padding: 0 6px; }
+.photo-section { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.photo-section p { margin: 0 0 10px; max-width: 460px; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.photo-wrap { position: relative; }
+.photo-change { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); background: var(--navy); color: #fff; font-size: .72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; cursor: pointer; white-space: nowrap; box-shadow: var(--shadow); }
+.photo-change:hover { background: var(--navy-2); }

@@ -50,6 +50,16 @@ export function validatePatient(input, { today = '9999-12-31', partial = false }
   return errors;
 }
 
+export const MAX_PHOTO_CHARS = 400_000;          // ~300 KB image; the browser resizes photos to 320×320 first
+
+/** A patient photo is a small JPEG/PNG/WebP data URL. */
+export function validatePhoto(photo) {
+  if (photo === null) return [];                  // null removes the photo
+  if (typeof photo !== 'string' || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(photo)) return ['Photo must be a JPEG, PNG or WebP image'];
+  if (photo.length > MAX_PHOTO_CHARS) return ['Photo is too large (limit about 300 KB after resizing)'];
+  return [];
+}
+
 export function isValidStatus(status) {
   return STATUSES.includes(status);
 }

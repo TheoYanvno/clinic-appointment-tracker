@@ -1,7 +1,7 @@
 // REST API routes as one plain function: (request) → { status, body }.
 // The Node server calls it for real HTTP requests, and the live demo calls it directly in the browser,
 // so both use the same validation, status codes and SQL.
-import { validateAppointment, validatePatient, isValidStatus } from './validation.js';
+import { validateAppointment, validatePatient, validatePhoto, isValidStatus } from './validation.js';
 import { toDateString, nowString } from './schedule.js';
 
 const ok = (body, status = 200) => ({ status, body });
@@ -55,6 +55,12 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toda
       if (errors.length) return fail(400, ...errors);
       repo.updatePatient(params[0], body);
       return ok(repo.patient(params[0]));
+    }
+
+    if ((params = route('PUT', /^\/api\/patients\/(\d+)\/photo$/))) {
+      const errors = validatePhoto(body.photo ?? null);
+      if (errors.length) return fail(400, ...errors);
+      return repo.setPhoto(params[0], body.photo ?? null) ? ok({ ok: true }) : fail(404, 'Patient not found');
     }
 
     // ---- Appointments
