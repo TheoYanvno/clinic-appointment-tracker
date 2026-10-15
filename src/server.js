@@ -32,7 +32,7 @@ export function createServer(repo) {
 
     if (url.pathname.startsWith('/api/')) {
       try {
-        const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readJson(req) : {};
+        const body = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.headers['content-length'] !== '0' ? await readJson(req) : {};
         const result = handle(repo, { method: req.method, path: url.pathname, query: Object.fromEntries(url.searchParams), body });
         return send(result.status, result.body);
       } catch (err) {

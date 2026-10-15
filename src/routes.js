@@ -1,7 +1,8 @@
 // REST API routes as one plain function: (request) → { status, body }.
 // The Node server calls it for real HTTP requests, and the live demo calls it directly in the browser,
 // so both use the same validation, status codes and SQL.
-import { validateAppointment, validatePatient, validatePhoto, isValidStatus } from './validation.js';
+import { validateAppointment, validatePatient, validatePhoto, validateDocument, isValidStatus } from './validation.js';
+import { toBase64, fromBase64 } from './base64.js';
 import { toDateString, nowString } from './schedule.js';
 
 const ok = (body, status = 200) => ({ status, body });
@@ -61,6 +62,27 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toda
       const errors = validatePhoto(body.photo ?? null);
       if (errors.length) return fail(400, ...errors);
       return repo.setPhoto(params[0], body.photo ?? null) ? ok({ ok: true }) : fail(404, 'Patient not found');
+    }
+
+    // ---- Documents (files travel as base64 in JSON and are stored as BLOBs)
+    if ((params = route('GET', /^\/api\/patients\/(\d+)\/documents$/))) return ok(repo.documents(params[0]));
+    if ((params = route('POST', /^\/api\/patients\/(\d+)\/documents$/))) {
+      if (!repo.patient(params[0])) return fail(404, 'Patient not found');
+      const errors = validateDocument(body);
+      if (errors.length) return fail(400, ...errors);
+      const data = fromBase64(body.dataBase64);
+      if (data.length === 0) return fail(400, 'The file is empty');
+      const id = repo.addDocument({ ...body, patientId: params[0], fileName: body.fileName.slice(0, 200), data });
+      return ok(repo.documents(params[0]).find((d) => d.id === id), 201);
+    }
+    if ((params = route('GET', /^\/api\/documents\/(\d+)$/))) {
+      const doc = repo.document(params[0]);
+      if (!doc) return fail(404, 'Document not found');
+      const { data, ...meta } = doc;
+      return ok({ ...meta, dataBase64: toBase64(data) });
+    }
+    if ((params = route('DELETE', /^\/api\/documents\/(\d+)$/))) {
+      return repo.deleteDocument(params[0]) ? ok({ ok: true }) : fail(404, 'Document not found');
     }
 
     // ---- Appointments

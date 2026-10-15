@@ -100,6 +100,7 @@ export class ClinicRepository {
     if (!patient) return undefined;
     patient.insurance = this.db.all('SELECT * FROM insurance WHERE patient_id = ? ORDER BY coverage = \'secondary\'', [id]);
     patient.appointments = this.db.all(`${APPOINTMENT_SELECT} WHERE a.patient_id = ? ORDER BY a.starts_at DESC`, [id]);
+    patient.documents = this.documents(id);
     return patient;
   }
 
@@ -147,6 +148,34 @@ export class ClinicRepository {
   /** Saves (or with null, removes) the patient's photo. */
   setPhoto(id, photo) {
     return this.db.run('UPDATE patients SET photo = ? WHERE id = ?', [photo, id]).changes === 1;
+  }
+
+  // ---------- Documents ----------
+
+  documents(patientId) {
+    return this.db.all(`
+      SELECT id, patient_id AS patientId, title, category, file_name AS fileName, mime_type AS mimeType,
+             size_bytes AS size, uploaded_at AS uploadedAt
+      FROM documents WHERE patient_id = ? ORDER BY uploaded_at DESC, id DESC`, [patientId]);
+  }
+
+  /** One document including its bytes (Uint8Array). */
+  document(id) {
+    return this.db.get(`
+      SELECT id, patient_id AS patientId, title, category, file_name AS fileName, mime_type AS mimeType,
+             size_bytes AS size, uploaded_at AS uploadedAt, data
+      FROM documents WHERE id = ?`, [id]);
+  }
+
+  addDocument({ patientId, title, category, fileName, mimeType, data, uploadedAt }) {
+    return this.db.run(`
+      INSERT INTO documents (patient_id, title, category, file_name, mime_type, size_bytes, data, uploaded_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, strftime('%Y-%m-%d %H:%M', 'now', 'localtime')))`,
+    [patientId, title.trim(), category, fileName, mimeType, data.length, data, uploadedAt ?? null]).lastId;
+  }
+
+  deleteDocument(id) {
+    return this.db.run('DELETE FROM documents WHERE id = ?', [id]).changes === 1;
   }
 
   // ---------- Appointments ----------

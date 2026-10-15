@@ -1,7 +1,7 @@
 // Fills an empty database with a realistic clinic: providers and their hours, DC character patients,
 // generated patients with insurance, and six weeks of appointments around today
 // (two weeks back, this week, three weeks ahead). A seeded random generator makes it repeatable.
-import { PROVIDERS, PRIMARY_CARE, REASONS, PAYERS, DC_PATIENTS, FIRST_NAMES, LAST_NAMES, STREETS, ALLERGIES, LANGUAGES } from './data.js';
+import { PROVIDERS, PRIMARY_CARE, REASONS, PAYERS, DC_PATIENTS, SAMPLE_DOCUMENTS, FIRST_NAMES, LAST_NAMES, STREETS, ALLERGIES, LANGUAGES } from './data.js';
 import { addDays, weekdayOf, toDateString, nowString, toMinutes, toTime } from '../schedule.js';
 
 /** Small, fast, repeatable random number generator (mulberry32). */
@@ -109,6 +109,13 @@ export function seedDatabase(db, { today = toDateString(new Date()), now, genera
       primaryId: byLast[c.primary].id,
       allergies: c.allergies ?? rand.pick(ALLERGIES),
     }));
+
+    for (const doc of SAMPLE_DOCUMENTS) {
+      const owner = dc.find((p) => p.last === doc.patient && p.first === doc.first);
+      const data = new TextEncoder().encode(doc.text);
+      db.run(`INSERT INTO documents (patient_id, title, category, file_name, mime_type, size_bytes, uploaded_at, data)
+              VALUES (?, ?, ?, ?, 'text/plain', ?, ?, ?)`, [owner.id, doc.title, doc.category, doc.file, data.length, `${addDays(today, -doc.daysAgo)} 10:30`, data]);
+    }
 
     for (let i = 0; i < generatedPatients; i++) {
       const sex = rand.chance(0.52) ? 'F' : 'M';

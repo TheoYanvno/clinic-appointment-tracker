@@ -4,6 +4,7 @@ import { $, esc, avatar, usDate, ageOn, clockTime, statusBadge, now } from './ui
 import { openBooking } from './booking.js';
 import { openAppointment } from './appointment.js';
 import { resizePhoto } from './patient-form.js';
+import { documentsSection, wireDocuments } from './documents.js';
 import { toast } from './ui.js';
 
 export async function renderPatientList(main, params) {
@@ -56,6 +57,7 @@ export async function renderPatient(main, id) {
         <dt>Allergies</dt><dd>${esc(p.allergies ?? 'None recorded')}</dd><dt>Medications</dt><dd>${esc(p.medications ?? 'None recorded')}</dd>
         <dt>Notes</dt><dd>${esc(p.notes ?? '—')}</dd></dl></section>
     </div>
+    ${documentsSection(p.documents)}
     <section class="card" style="margin-top:14px"><h2>Upcoming visits</h2>
       ${upcoming.length ? `<div class="table-wrap"><table class="data-table"><tbody>${upcoming.map(visitRow).join('')}</tbody></table></div>` : '<p class="muted">None scheduled.</p>'}</section>
     <section class="card" style="margin-top:14px"><h2>Visit history</h2>
@@ -63,6 +65,7 @@ export async function renderPatient(main, id) {
   const refresh = () => renderPatient(main, id);
   $('#bookForPatient').onclick = () => openBooking({ patientId: p.id, patientName: name, providerId: p.primary_provider_id }, refresh);
   main.querySelectorAll('[data-appt]').forEach((b) => { b.onclick = () => openAppointment(Number(b.dataset.appt), refresh); });
+  wireDocuments(main, p.id, refresh);
   $('#quickPhoto').onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;

@@ -60,6 +60,21 @@ export function validatePhoto(photo) {
   return [];
 }
 
+export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
+export const DOCUMENT_TYPES = { 'application/pdf': 'PDF', 'image/jpeg': 'JPEG image', 'image/png': 'PNG image', 'image/webp': 'WebP image', 'text/plain': 'Text file' };
+
+/** Checks an upload: { title, category, fileName, mimeType, dataBase64 } */
+export function validateDocument(input) {
+  const errors = [];
+  if (!String(input.title ?? '').trim()) errors.push('Give the document a title');
+  if (!DOCUMENT_CATEGORIES.includes(input.category)) errors.push('Choose a document category');
+  if (!String(input.fileName ?? '').trim()) errors.push('File name is missing');
+  if (!DOCUMENT_TYPES[input.mimeType]) errors.push('Upload a PDF, JPEG, PNG, WebP or text file');
+  if (typeof input.dataBase64 !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(input.dataBase64)) errors.push('The file could not be read');
+  else if ((input.dataBase64.length * 3) / 4 > MAX_DOCUMENT_BYTES + 3) errors.push('File is larger than 5 MB');
+  return errors;
+}
+
 export function isValidStatus(status) {
   return STATUSES.includes(status);
 }

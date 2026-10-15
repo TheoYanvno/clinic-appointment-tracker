@@ -209,3 +209,11 @@ textarea { width: 100%; min-height: 70px; resize: vertical; }
 .photo-wrap { position: relative; }
 .photo-change { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); background: var(--navy); color: #fff; font-size: .72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; cursor: pointer; white-space: nowrap; box-shadow: var(--shadow); }
 .photo-change:hover { background: var(--navy-2); }
+
+/* ---------- Documents ---------- */
+.doc-upload { display: grid; gap: 8px; margin-bottom: 14px; }
+.doc-upload .btn { justify-self: start; }
+.drop-zone { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px; border: 2px dashed #c3ccd8; border-radius: var(--radius); background: #f8fafc; cursor: pointer; text-align: center; }
+.drop-zone:hover, .drop-zone.over { border-color: var(--scheduled); background: #eef4ff; }
+.doc-actions { white-space: nowrap; text-align: right; }
+.doc-actions .btn { padding: 4px 8px; }

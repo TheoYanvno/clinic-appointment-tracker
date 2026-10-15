@@ -86,3 +86,24 @@ for (const [engine, open] of ENGINES) {
     assert.strictEqual(api('PUT', '/api/patients/999999/photo', { photo }).status, 404);
   });
 }
+
+for (const [engine, open] of ENGINES) {
+  test(`${engine}: documents upload as base64, are stored as BLOBs, download intact and can be deleted`, () => {
+    const db = clinic(open);
+    const api = (method, path, body) => handle(db, { method, path, body, today: '2026-10-15', now: NOW });
+    assert.ok(api('GET', '/api/patients/1').body.documents.some((d) => d.title === 'Chest X-ray report'));   // seeded sample
+    const bytes = new Uint8Array(70000).map((_, i) => (i * 31) % 256);                                // binary, not text
+    const upload = { title: 'MRI knee', category: 'Imaging', fileName: 'mri.pdf', mimeType: 'application/pdf', dataBase64: Buffer.from(bytes).toString('base64') };
+    const created = api('POST', '/api/patients/2/documents', upload);
+    assert.strictEqual(created.status, 201);
+    assert.strictEqual(created.body.size, 70000);
+    const fetched = api('GET', `/api/documents/${created.body.id}`).body;
+    assert.deepStrictEqual(new Uint8Array(Buffer.from(fetched.dataBase64, 'base64')), bytes);
+    assert.strictEqual(api('POST', '/api/patients/2/documents', { ...upload, mimeType: 'application/x-msdownload' }).status, 400);
+    assert.strictEqual(api('POST', '/api/patients/2/documents', { ...upload, category: 'Selfie' }).status, 400);
+    assert.strictEqual(api('POST', '/api/patients/2/documents', { ...upload, dataBase64: 'A'.repeat(7_200_000) }).status, 400);
+    assert.strictEqual(api('POST', '/api/patients/999999/documents', upload).status, 404);
+    assert.strictEqual(api('DELETE', `/api/documents/${created.body.id}`).status, 200);
+    assert.strictEqual(api('GET', `/api/documents/${created.body.id}`).status, 404);
+  });
+}

@@ -126,3 +126,17 @@ export const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Ga
 export const STREETS = ['Park Row', 'Crime Alley', 'Kane Street', 'Robinson Park Ave', 'Burnley Road', 'Diamond District Blvd', 'Old Gotham Way', 'Otisburg Lane', 'Coventry Drive', 'Tricorner Street', 'Gotham Heights Ave', 'Amusement Mile', 'Chinatown Plaza', 'Little Italy Street', 'Riverside Drive'];
 export const ALLERGIES = ['None known', 'None known', 'None known', 'Penicillin', 'Sulfa drugs', 'Peanuts', 'Latex', 'Shellfish', 'Codeine', 'Bee stings'];
 export const LANGUAGES = ['English', 'English', 'English', 'English', 'English', 'Spanish', 'Spanish', 'Chinese', 'Haitian Creole', 'Arabic', 'Vietnamese', 'Portuguese'];
+
+// Sample text documents attached to a few DC patients (all fictional)
+export const SAMPLE_DOCUMENTS = [
+  { patient: 'Wayne', first: 'Bruce', title: 'Chest X-ray report', category: 'Imaging', file: 'chest-xray-report.txt', daysAgo: 3,
+    text: 'GOTHAM HOSPITAL - RADIOLOGY\nExam: Chest X-ray, 2 views\nIndication: Rib pain after "polo injury"\n\nFindings: Healing fractures of left ribs 6 and 7. Several older healed fractures noted.\nLungs clear. No pneumothorax.\n\nImpression: Healing rib fractures. Recommend rest (patient unlikely to comply).\n\nFictional demo document.' },
+  { patient: 'Wayne', first: 'Bruce', title: 'Insurance card (front)', category: 'Insurance card', file: 'insurance-card.txt', daysAgo: 40,
+    text: 'WAYNE ENTERPRISES EMPLOYEE HEALTH - PREMIER PPO\nMember: Bruce Wayne\nGroup: WE-0001\n\nFictional demo document.' },
+  { patient: 'Pennyworth', first: 'Alfred', title: 'Lipid panel', category: 'Lab result', file: 'lipid-panel.txt', daysAgo: 12,
+    text: 'GOTHAM HOSPITAL - LABORATORY\nPatient: Alfred Pennyworth\n\nTotal cholesterol  182 mg/dL\nLDL                98 mg/dL\nHDL                61 mg/dL\nTriglycerides     115 mg/dL\n\nAll values within reference range.\n\nFictional demo document.' },
+  { patient: 'Dent', first: 'Harvey', title: 'Dermatology visit note', category: 'Visit note', file: 'dermatology-note.txt', daysAgo: 30,
+    text: 'Dermatology follow-up: burn scars, left face and hand.\nGrafts healing well. Continue silicone sheets and sunscreen.\nPatient asked to flip a coin to decide on next appointment date.\n\nFictional demo document.' },
+  { patient: 'Gordon', first: 'James', title: 'Referral to cardiology', category: 'Referral', file: 'cardiology-referral.txt', daysAgo: 8,
+    text: 'Referral: James Gordon to Cardiology (Dr. Naomi Brandt)\nReason: Hypertension, occasional palpitations. High caffeine intake.\n\nFictional demo document.' },
+];
