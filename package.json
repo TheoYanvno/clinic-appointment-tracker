@@ -2,6 +2,7 @@
   "name": "clinic-appointment-tracker",
   "version": "1.0.0",
   "description": "Full stack clinic scheduling app: SQL (SQLite) + Node.js REST API + vanilla JavaScript front end",
+  "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node --no-warnings src/server.js",

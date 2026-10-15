@@ -1,11 +1,16 @@
 // Small REST API using only Node's built-in http module (no frameworks).
-const http = require('node:http');
-const fs = require('node:fs');
-const path = require('node:path');
-const { AppointmentRepository } = require('./AppointmentRepository');
-const { validateAppointment, isValidStatus } = require('./validation');
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ClinicRepository } from './ClinicRepository.js';
+import { openNodeDatabase } from './db/nodeDriver.js';
+import { readSql } from './sqlFiles.js';
+import { validateAppointment, isValidStatus } from './validation.js';
 
-function createServer(repo) {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export function createServer(repo) {
   const send = (res, code, body) => {
     res.writeHead(code, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(body));
@@ -55,10 +60,10 @@ function createServer(repo) {
   });
 }
 
-if (require.main === module) {
-  const repo = new AppointmentRepository(path.join(__dirname, '..', 'clinic.db')).init();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const db = openNodeDatabase(path.join(__dirname, '..', 'clinic.db'));
+  const repo = new ClinicRepository(db).init({ schema: readSql('schema.sql'), seed: readSql('seed.sql') });
   const port = process.env.PORT || 3000;
   createServer(repo).listen(port, () => console.log(`Clinic tracker running at http://localhost:${port}`));
 }
 
-module.exports = { createServer };

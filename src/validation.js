@@ -1,9 +1,9 @@
 // Pure functions: easy to unit test, shared rules for the API.
 
-const STATUSES = ['scheduled', 'checked_in', 'completed', 'no_show', 'cancelled'];
+export const STATUSES = ['scheduled', 'checked_in', 'completed', 'no_show', 'cancelled'];
 
 /** Returns a list of error messages (empty list = valid). */
-function validateAppointment(input) {
+export function validateAppointment(input) {
   const errors = [];
   if (!Number.isInteger(input.patientId)) errors.push('patientId must be a whole number');
   if (!Number.isInteger(input.providerId)) errors.push('providerId must be a whole number');
@@ -14,16 +14,14 @@ function validateAppointment(input) {
   return errors;
 }
 
-function isValidStatus(status) {
+export function isValidStatus(status) {
   return STATUSES.includes(status);
 }
 
 /** Groups appointments by status, e.g. { scheduled: 3, completed: 2 } */
-function countByStatus(appointments) {
+export function countByStatus(appointments) {
   return appointments.reduce((counts, { status }) => {
     counts[status] = (counts[status] ?? 0) + 1;
     return counts;
   }, {});
 }
-
-module.exports = { STATUSES, validateAppointment, isValidStatus, countByStatus };

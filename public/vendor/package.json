@@ -1,0 +1,1 @@
+{ "type": "commonjs", "description": "sql.js 1.10.3 (MIT) from https://github.com/sql-js/sql.js/releases. Lets Node load sql-wasm.js in tests." }

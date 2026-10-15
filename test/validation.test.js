@@ -1,6 +1,6 @@
-const test = require('node:test');
-const assert = require('node:assert');
-const { validateAppointment, countByStatus } = require('../src/validation');
+import test from 'node:test';
+import assert from 'node:assert';
+import { validateAppointment, countByStatus } from '../src/validation.js';
 
 test('valid appointment has no errors', () => {
   const errors = validateAppointment({ patientId: 1, providerId: 2, startsAt: '2026-10-20 09:00', reason: 'Follow-up' });
