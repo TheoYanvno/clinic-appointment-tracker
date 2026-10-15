@@ -1,5 +1,6 @@
 // Hash router: #/schedule, #/patients, #/patients/12, #/providers, #/reports (with ?query for filters).
 import { $, $$, now, longDate, clockTime, toast } from './ui.js';
+import { isLocal } from './api.js';
 import { renderSchedule } from './schedule-view.js';
 import { renderPatientList, renderPatient } from './patients-view.js';
 import { renderPatientForm } from './patient-form.js';
@@ -33,6 +34,16 @@ function tick() {
 }
 
 let lastSection = '';
+if (isLocal) {
+  $('#banner').innerHTML = `Live demo with fictional patients. Everything runs in your browser and changes are saved on this device only.
+    Do not enter real health information. <button class="link-btn" id="resetDemo">Reset demo data</button>`;
+  $('#resetDemo').onclick = async (e) => {
+    if (e.target.dataset.confirm !== 'yes') { e.target.dataset.confirm = 'yes'; e.target.textContent = 'Click again to erase your changes'; return; }
+    const { resetDemo } = await import('./local.js');
+    resetDemo();
+  };
+}
+
 addEventListener('hashchange', () => {
   const section = location.hash.split('?')[0];
   if (section !== lastSection) scrollTo(0, 0);       // new page: start at the top (but keep place when only filters change)
