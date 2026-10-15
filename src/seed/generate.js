@@ -2,7 +2,7 @@
 // generated patients with insurance, and six weeks of appointments around today
 // (two weeks back, this week, three weeks ahead). A seeded random generator makes it repeatable.
 import { PROVIDERS, PRIMARY_CARE, REASONS, PAYERS, DC_PATIENTS, FIRST_NAMES, LAST_NAMES, STREETS, ALLERGIES, LANGUAGES } from './data.js';
-import { addDays, weekdayOf, toDateString, toMinutes, toTime } from '../schedule.js';
+import { addDays, weekdayOf, toDateString, nowString, toMinutes, toTime } from '../schedule.js';
 
 /** Small, fast, repeatable random number generator (mulberry32). */
 export function randomGenerator(seed = 2026) {
@@ -49,7 +49,8 @@ function businessDay(date, n) {
  * @param today  'YYYY-MM-DD'
  * @param now    'YYYY-MM-DD HH:MM' used to decide which visits already happened
  */
-export function seedDatabase(db, { today = toDateString(new Date()), now = `${today} 12:00`, generatedPatients = 2400, seed = 2026 } = {}) {
+export function seedDatabase(db, { today = toDateString(new Date()), now, generatedPatients = 2400, seed = 2026 } = {}) {
+  now ??= today === toDateString(new Date()) ? nowString(new Date()) : `${today} 12:00`;
   const rand = randomGenerator(seed);
   const insert = (sql, params) => db.run(sql, params).lastId;
   db.exec('BEGIN');
@@ -192,7 +193,7 @@ export function seedDatabase(db, { today = toDateString(new Date()), now = `${to
           const fits = t + minutes <= end && (t + minutes <= toMinutes(LUNCH[0]) || t >= toMinutes(LUNCH[1]));
           if (fits && rand.chance(0.72) && isFree(provider.id, date, toTime(t), minutes)) {
             const reason = type === 'Annual physical' ? (provider.specialty === 'Pediatrics' ? 'Well-child visit' : 'Annual physical')
-              : type === 'New patient' ? `New patient: ${rand.pick(REASONS[provider.specialty]).toLowerCase()}`
+              
               : rand.pick(REASONS[provider.specialty]);
             addAppointment(rand.pick(pool).id, provider, date, toTime(t), minutes, type, reason);
             t += minutes;

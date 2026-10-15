@@ -3,36 +3,74 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clinic Appointment Tracker</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>Gotham Hospital Patient Portal</title>
+  <meta name="description" content="Clinic scheduling and patient records demo: 36 providers, day/week/month schedules, patient profiles with insurance, photos and documents.">
+  <link rel="icon" href="img/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header><h1>Clinic Appointment Tracker</h1></header>
-  <main>
-    <section>
-      <label>Day <input type="date" id="day" value="2026-10-19"></label>
-      <p id="summary"></p>
-      <table>
-        <thead><tr><th>Time</th><th>Patient</th><th>Provider</th><th>Reason</th><th>Status</th></tr></thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </section>
-    <section>
-      <h2>Book an appointment</h2>
-      <form id="book">
-        <select id="patient" required></select>
-        <select id="provider" required></select>
-        <input id="startsAt" type="datetime-local" required>
-        <input id="reason" placeholder="Reason for visit" required>
-        <button>Book</button>
-      </form>
-      <p id="message" role="status"></p>
-    </section>
-    <section>
-      <h2>Provider workload</h2>
-      <ul id="workload"></ul>
-    </section>
-  </main>
-  <script src="/app.js"></script>
+  <header class="topbar">
+    <a class="brand" href="#/schedule" aria-label="Gotham Hospital Patient Portal home">
+      <img src="img/logo.svg" alt="" width="36" height="36">
+      <span><strong>Gotham Hospital</strong><small>Patient Portal</small></span>
+    </a>
+    <nav class="tabs" aria-label="Main">
+      <a href="#/schedule" data-tab="schedule">Schedule</a>
+      <a href="#/patients" data-tab="patients">Patients</a>
+      <a href="#/providers" data-tab="providers">Providers</a>
+      <a href="#/reports" data-tab="reports">Reports</a>
+    </nav>
+    <div class="clock" id="clock" aria-live="off"></div>
+  </header>
+
+  <p class="demo-banner" id="banner">Demo with fictional patients. Do not enter real health information.</p>
+
+  <main id="view" tabindex="-1"></main>
+
+  <!-- Book an appointment -->
+  <dialog id="bookDialog" class="dialog" aria-labelledby="bookTitle">
+    <form id="bookForm" method="dialog" novalidate>
+      <header><h2 id="bookTitle">Book an appointment</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></header>
+      <div class="dialog-body">
+        <label class="field patient-picker">Patient
+          <input id="bookPatientSearch" type="search" placeholder="Search name, MRN or date of birth" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="bookPatientResults">
+          <input type="hidden" id="bookPatientId">
+          <ul id="bookPatientResults" class="picker-results" role="listbox" hidden></ul>
+        </label>
+        <label class="field">Provider <select id="bookProvider" required></select></label>
+        <div class="row">
+          <label class="field">Date <input id="bookDate" type="date" required></label>
+          <label class="field">Length
+            <select id="bookDuration"><option value="15">15 min</option><option value="30" selected>30 min</option><option value="45">45 min</option><option value="60">60 min</option></select>
+          </label>
+          <label class="field">Visit type
+            <select id="bookType"><option>Follow-up</option><option>New patient</option><option>Annual physical</option><option>Sick visit</option><option>Procedure</option><option>Telehealth</option></select>
+          </label>
+        </div>
+        <fieldset class="field">
+          <legend>Open times</legend>
+          <div id="bookSlots" class="slots" role="radiogroup" aria-label="Open times"></div>
+        </fieldset>
+        <label class="field">Reason for visit <input id="bookReason" required minlength="3" placeholder="e.g. Blood pressure check"></label>
+        <p class="form-errors" id="bookErrors" role="alert"></p>
+      </div>
+      <footer><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn primary" id="bookSubmit">Book appointment</button></footer>
+    </form>
+  </dialog>
+
+  <!-- Appointment details -->
+  <dialog id="apptDialog" class="dialog small" aria-labelledby="apptTitle">
+    <header><h2 id="apptTitle">Appointment</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></header>
+    <div class="dialog-body" id="apptBody"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <footer class="site-footer">
+    Gotham Hospital is a fictional demo. Patient names are DC Comics characters used for fun; not affiliated with DC.
+    Built by Anthony Evo · <a href="https://github.com/TheoYanvno/clinic-appointment-tracker">Source code</a>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

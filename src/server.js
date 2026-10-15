@@ -40,9 +40,12 @@ export function createServer(repo) {
       }
     }
 
-    // Static front end (path.join + startsWith check blocks ../ tricks)
-    const file = path.join(PUBLIC, url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname));
-    if (!file.startsWith(PUBLIC) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return send(404, { errors: ['Not found'] });
+    // Static front end, plus the shared modules in src/ that the browser also imports
+    // (path.join + startsWith check blocks ../ tricks)
+    const shared = url.pathname.startsWith('/src/') && url.pathname.endsWith('.js');
+    const base = shared ? ROOT : PUBLIC;
+    const file = path.join(base, url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname));
+    if (!file.startsWith(shared ? path.join(ROOT, 'src') : PUBLIC) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return send(404, { errors: ['Not found'] });
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
     fs.createReadStream(file).pipe(res);
   });
