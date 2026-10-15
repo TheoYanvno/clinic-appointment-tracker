@@ -2,6 +2,7 @@
 // It talks to a small driver (node:sqlite on the server, sql.js in the browser), never to an engine directly.
 // All queries are parameterized (?) so user input is never pasted into SQL.
 import { seedDatabase } from './seed/generate.js';
+import { weekdayOf, toMinutes, toTime } from './schedule.js';
 
 const PATIENT_FIELDS = ['first_name', 'last_name', 'preferred_name', 'birth_date', 'sex', 'phone', 'email', 'address', 'city',
   'state', 'zip', 'preferred_language', 'emergency_name', 'emergency_relation', 'emergency_phone', 'primary_provider_id',
@@ -170,6 +171,67 @@ export class ClinicRepository {
         AND (? IS NULL OR provider_id = ?)
       GROUP BY date(starts_at)
       ORDER BY date`, [from, to, providerId ?? null, providerId ?? null]);
+  }
+
+  /**
+   * Reasons a booking can't happen, in plain words (empty list = it can be booked).
+   * Checks clinic hours, the provider's hours and lunch, and overlaps for the provider and the patient.
+   */
+  bookingProblems({ patientId, providerId, startsAt, duration = 30, ignoreId = null }, now = null) {
+    const [date, time] = startsAt.split(' ');
+    const start = toMinutes(time);
+    const end = start + duration;
+    const weekday = weekdayOf(date);
+    const problems = [];
+
+    const clinic = this.db.get('SELECT opens, closes FROM clinic_hours WHERE weekday = ?', [weekday]);
+    if (!clinic?.opens) return ['The clinic is closed on weekends. Business hours are Monday–Friday.'];
+    if (start < toMinutes(clinic.opens) || end > toMinutes(clinic.closes)) {
+      problems.push(`Outside business hours (${clinic.opens}–${clinic.closes}).`);
+    }
+    const hours = this.hoursFor(providerId, weekday);
+    if (!hours) return [...problems, 'This provider does not work on that day.'];
+    if (start < toMinutes(hours.starts) || end > toMinutes(hours.ends)) {
+      problems.push(`Outside this provider's hours (${hours.starts}–${hours.ends}).`);
+    }
+    if (hours.lunchStarts && start < toMinutes(hours.lunchEnds) && end > toMinutes(hours.lunchStarts)) {
+      problems.push(`Overlaps the provider's lunch break (${hours.lunchStarts}–${hours.lunchEnds}).`);
+    }
+    if (now && startsAt < now) problems.push('That time has already passed.');
+
+    // Overlap: an existing visit starts before this one ends AND ends after this one starts
+    const overlapSql = (column) => `
+      SELECT starts_at AS startsAt FROM appointments
+      WHERE ${column} = ? AND status <> 'cancelled' AND id IS NOT ?
+        AND date(starts_at) = ?
+        AND starts_at < ?
+        AND strftime('%Y-%m-%d %H:%M', starts_at, '+' || duration_min || ' minutes') > ?
+      LIMIT 1`;
+    const endsAt = `${date} ${toTime(end)}`;
+    const providerClash = this.db.get(overlapSql('provider_id'), [providerId, ignoreId, date, endsAt, startsAt]);
+    if (providerClash) problems.push(`The provider already has a visit at ${providerClash.startsAt.slice(11)}.`);
+    if (patientId) {
+      const patientClash = this.db.get(overlapSql('patient_id'), [patientId, ignoreId, date, endsAt, startsAt]);
+      if (patientClash) problems.push(`The patient already has a visit at ${patientClash.startsAt.slice(11)}.`);
+    }
+    return problems;
+  }
+
+  /** Open start times ('HH:MM') for a provider on a date, for a visit of `duration` minutes. */
+  openSlots({ providerId, date, duration = 30 }, now = null) {
+    const hours = this.hoursFor(providerId, weekdayOf(date));
+    if (!hours) return [];
+    const busy = this.db.all(`
+      SELECT time(starts_at) AS starts, duration_min AS minutes FROM appointments
+      WHERE provider_id = ? AND date(starts_at) = ? AND status <> 'cancelled'`, [providerId, date])
+      .map((a) => [toMinutes(a.starts), toMinutes(a.starts) + a.minutes]);
+    if (hours.lunchStarts) busy.push([toMinutes(hours.lunchStarts), toMinutes(hours.lunchEnds)]);
+    const slots = [];
+    for (let t = toMinutes(hours.starts); t + duration <= toMinutes(hours.ends); t += 15) {
+      const free = busy.every(([s, e]) => t + duration <= s || t >= e);
+      if (free && (!now || `${date} ${toTime(t)}` >= now)) slots.push(toTime(t));
+    }
+    return slots;
   }
 
   createAppointment({ patientId, providerId, startsAt, duration = 30, visitType = 'Follow-up', reason }) {

@@ -1,7 +1,7 @@
 // REST API routes as one plain function: (request) → { status, body }.
 // The Node server calls it for real HTTP requests, and the live demo calls it directly in the browser,
 // so both use the same validation, status codes and SQL.
-import { validateAppointment, isValidStatus } from './validation.js';
+import { validateAppointment, validatePatient, isValidStatus } from './validation.js';
 import { toDateString, nowString } from './schedule.js';
 
 const ok = (body, status = 200) => ({ status, body });
@@ -28,6 +28,10 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toda
     // ---- Clinic and providers
     if (route('GET', /^\/api\/clinic$/)) return ok({ hours: repo.clinicHours(), summary: repo.summary(today), today, now });
     if (route('GET', /^\/api\/providers$/)) return ok(repo.providers({ credential: query.credential || null, q: query.q || null }));
+    if ((params = route('GET', /^\/api\/providers\/(\d+)\/slots$/))) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(query.date ?? '')) return fail(400, 'date must look like YYYY-MM-DD');
+      return ok(repo.openSlots({ providerId: params[0], date: query.date, duration: Number(query.duration) || 30 }, now));
+    }
     if ((params = route('GET', /^\/api\/providers\/(\d+)$/))) {
       const provider = repo.provider(params[0]);
       return provider ? ok(provider) : fail(404, 'Provider not found');
@@ -40,11 +44,15 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toda
       return patient ? ok(patient) : fail(404, 'Patient not found');
     }
     if (route('POST', /^\/api\/patients$/)) {
+      const errors = validatePatient(body, { today });
+      if (errors.length) return fail(400, ...errors);
       const id = repo.createPatient(body);
       return ok(repo.patient(id), 201);
     }
     if ((params = route('PUT', /^\/api\/patients\/(\d+)$/))) {
       if (!repo.patient(params[0])) return fail(404, 'Patient not found');
+      const errors = validatePatient(body, { today, partial: true });
+      if (errors.length) return fail(400, ...errors);
       repo.updatePatient(params[0], body);
       return ok(repo.patient(params[0]));
     }
@@ -64,11 +72,19 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toda
     if (route('POST', /^\/api\/appointments$/)) {
       const errors = validateAppointment(body);
       if (errors.length) return fail(400, ...errors);
+      const problems = repo.bookingProblems(body, now);
+      if (problems.length) return fail(409, ...problems);
       const id = repo.createAppointment(body);
       return ok(repo.appointment(id), 201);
     }
     if ((params = route('PATCH', /^\/api\/appointments\/(\d+)\/status$/))) {
       if (!isValidStatus(body.status)) return fail(400, 'Unknown status');
+      const current = repo.appointment(params[0]);
+      if (current?.status === 'cancelled' && body.status !== 'cancelled') {
+        // un-cancelling puts the visit back on the calendar, so the time must still be free
+        const problems = repo.bookingProblems({ ...current, ignoreId: current.id });
+        if (problems.length) return fail(409, ...problems);
+      }
       return repo.updateStatus(params[0], body.status) ? ok({ ok: true }) : fail(404, 'Appointment not found');
     }
 
