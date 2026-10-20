@@ -18,7 +18,14 @@ function friendly(err) {
   return msg;
 }
 
-export function handle(repo, { method = 'GET', path, query = {}, body = {}, today = toDateString(new Date()), now = nowString() }) {
+const STAFF_ONLY = 'Staff sign-in required';
+
+/**
+ * `token` is the staff session, if any: the Node server reads it from an HttpOnly cookie,
+ * the live demo from this browser's storage. Patients, schedules and providers are open to everyone;
+ * reports and deleting documents need a signed-in staff member.
+ */
+export function handle(repo, { method = 'GET', path, query = {}, body = {}, token = null, today = toDateString(new Date()), now = nowString() }) {
   const route = (verb, pattern) => {
     if (method !== verb) return null;
     const match = path.match(pattern);
@@ -26,6 +33,20 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toda
   };
   let params;
   try {
+    const staff = repo.sessionStaff(token, now);
+
+    // ---- Staff sign-in
+    if (route('POST', /^\/api\/login$/)) {
+      if (!body.username || !body.password) return fail(400, 'Enter your username and password');
+      const session = repo.signIn(body.username, body.password, now);
+      return session ? ok(session) : fail(401, 'Wrong username or password');
+    }
+    if (route('POST', /^\/api\/logout$/)) {
+      if (token) repo.signOut(token);
+      return ok({ ok: true });
+    }
+    if (route('GET', /^\/api\/me$/)) return staff ? ok(staff) : fail(401, 'Not signed in');
+
     // ---- Clinic and providers
     if (route('GET', /^\/api\/clinic$/)) return ok({ hours: repo.clinicHours(), summary: repo.summary(today), today, now });
     if (route('GET', /^\/api\/providers$/)) return ok(repo.providers({ credential: query.credential || null, q: query.q || null }));
@@ -82,6 +103,7 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toda
       return ok({ ...meta, dataBase64: toBase64(data) });
     }
     if ((params = route('DELETE', /^\/api\/documents\/(\d+)$/))) {
+      if (!staff) return fail(401, STAFF_ONLY);
       return repo.deleteDocument(params[0]) ? ok({ ok: true }) : fail(404, 'Document not found');
     }
 
@@ -117,7 +139,7 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toda
     }
 
     // ---- Reports
-    if (route('GET', /^\/api\/reports\/workload$/)) return ok(repo.providerWorkload({ from: query.from, to: query.to }));
+    if (route('GET', /^\/api\/reports\/workload$/)) return !staff ? fail(401, STAFF_ONLY) : ok(repo.providerWorkload({ from: query.from, to: query.to }));
 
     return fail(404, 'Not found');
   } catch (err) {

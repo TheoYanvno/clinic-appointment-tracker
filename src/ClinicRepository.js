@@ -3,6 +3,10 @@
 // All queries are parameterized (?) so user input is never pasted into SQL.
 import { seedDatabase } from './seed/generate.js';
 import { weekdayOf, toMinutes, toTime } from './schedule.js';
+import { STAFF } from './seed/staff.js';
+import { checkPassword, randomHex } from './auth.js';
+
+const SESSION_HOURS = 8;
 
 const PATIENT_FIELDS = ['first_name', 'last_name', 'preferred_name', 'birth_date', 'sex', 'phone', 'email', 'address', 'city',
   'state', 'zip', 'preferred_language', 'emergency_name', 'emergency_relation', 'emergency_phone', 'primary_provider_id',
@@ -28,6 +32,13 @@ export class ClinicRepository {
     this.db.exec(schema);
     const { n } = this.db.get('SELECT COUNT(*) AS n FROM providers');
     if (seed && n === 0) seedDatabase(this.db, seedOptions);     // { today, now, generatedPatients }
+    // Staff are added separately, so a database saved before sign-in existed gets them too
+    if (seed && this.db.get('SELECT COUNT(*) AS n FROM staff').n === 0) {
+      for (const s of STAFF) {
+        this.db.run('INSERT INTO staff (username, display_name, role, password_salt, password_hash, iterations) VALUES (?, ?, ?, ?, ?, ?)',
+          [s.username, s.name, s.role, s.salt, s.hash, s.iterations]);
+      }
+    }
     return this;
   }
 
@@ -304,5 +315,33 @@ export class ClinicRepository {
              (SELECT COUNT(*) FROM appointments WHERE date(starts_at) = ? AND status = 'checked_in') AS checkedIn,
              (SELECT ROUND(100.0 * SUM(status = 'no_show') / NULLIF(SUM(status IN ('completed', 'no_show')), 0), 1)
                 FROM appointments) AS noShowPct`, [today, today]);
+  }
+
+  // ---------- Staff sign-in ----------
+
+  /** Checks a username and password; returns a new session, or null when either is wrong. */
+  signIn(username, password, now) {
+    const row = this.db.get('SELECT id, password_salt AS salt, password_hash AS hash, iterations FROM staff WHERE username = ?', [String(username).trim()]);
+    if (!row || !checkPassword(String(password), row)) return null;
+    const token = randomHex(32);
+    const expires = new Date(new Date(now.replace(' ', 'T')).getTime() + SESSION_HOURS * 3600e3);
+    const pad = (n) => String(n).padStart(2, '0');
+    const expiresAt = `${expires.getFullYear()}-${pad(expires.getMonth() + 1)}-${pad(expires.getDate())} ${pad(expires.getHours())}:${pad(expires.getMinutes())}`;
+    this.db.run('DELETE FROM sessions WHERE expires_at <= ?', [now]);           // tidy up old sessions
+    this.db.run('INSERT INTO sessions (token, staff_id, created_at, expires_at) VALUES (?, ?, ?, ?)', [token, row.id, now, expiresAt]);
+    return { token, expiresAt, staff: this.sessionStaff(token, now) };
+  }
+
+  /** The staff member a session token belongs to, or null if it is unknown or expired. */
+  sessionStaff(token, now) {
+    if (!token) return null;
+    return this.db.get(`
+      SELECT st.id, st.username, st.display_name AS name, st.role
+      FROM sessions se JOIN staff st ON st.id = se.staff_id
+      WHERE se.token = ? AND se.expires_at > ?`, [token, now]) ?? null;
+  }
+
+  signOut(token) {
+    return this.db.run('DELETE FROM sessions WHERE token = ?', [token]).changes === 1;
   }
 }

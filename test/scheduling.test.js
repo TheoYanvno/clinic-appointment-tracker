@@ -103,7 +103,8 @@ for (const [engine, open] of ENGINES) {
     assert.strictEqual(api('POST', '/api/patients/2/documents', { ...upload, category: 'Selfie' }).status, 400);
     assert.strictEqual(api('POST', '/api/patients/2/documents', { ...upload, dataBase64: 'A'.repeat(7_200_000) }).status, 400);
     assert.strictEqual(api('POST', '/api/patients/999999/documents', upload).status, 404);
-    assert.strictEqual(api('DELETE', `/api/documents/${created.body.id}`).status, 200);
+    const { token } = api('POST', '/api/login', { username: 'lucius', password: 'gotham-demo' }).body;    // deleting is staff-only
+    assert.strictEqual(handle(db, { method: 'DELETE', path: `/api/documents/${created.body.id}`, token, now: NOW }).status, 200);
     assert.strictEqual(api('GET', `/api/documents/${created.body.id}`).status, 404);
   });
 }
