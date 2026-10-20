@@ -108,3 +108,22 @@ CREATE TABLE IF NOT EXISTS documents (
   data         BLOB    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_documents_patient ON documents(patient_id);
+
+-- Staff accounts for the hidden sign-in. Only a salted PBKDF2 hash of each password is kept.
+CREATE TABLE IF NOT EXISTS staff (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  username       TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+  display_name   TEXT    NOT NULL,
+  role           TEXT    NOT NULL CHECK (role IN ('Clinic manager', 'Front desk')),
+  password_salt  TEXT    NOT NULL,
+  password_hash  TEXT    NOT NULL,
+  iterations     INTEGER NOT NULL
+);
+
+-- One row per signed-in browser. The token is random; signing out deletes the row.
+CREATE TABLE IF NOT EXISTS sessions (
+  token       TEXT PRIMARY KEY,
+  staff_id    INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+  created_at  TEXT    NOT NULL,
+  expires_at  TEXT    NOT NULL
+);

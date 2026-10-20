@@ -31,7 +31,7 @@ for (const [engine, open] of ENGINES) {
     // Signed out: the portal works, but reports and deleting are staff-only
     assert.strictEqual(api('GET', '/api/patients').status, 200);
     assert.strictEqual(api('GET', '/api/reports/workload').status, 401);
-    assert.strictEqual(api('GET', '/api/me').status, 401);
+    assert.strictEqual(api('GET', '/api/me').body.staff, null);
 
     assert.strictEqual(api('POST', '/api/login', { body: { username: 'alfred', password: 'wrong' } }).status, 401);
     assert.strictEqual(api('POST', '/api/login', { body: { username: 'nobody', password: 'gotham-demo' } }).status, 401);
@@ -41,7 +41,7 @@ for (const [engine, open] of ENGINES) {
     assert.strictEqual(login.status, 200);
     const { token } = login.body;
     assert.match(token, /^[0-9a-f]{64}$/);
-    assert.deepStrictEqual(api('GET', '/api/me', { token }).body, { id: 1, username: 'alfred', name: 'Alfred Pennyworth', role: 'Clinic manager' });
+    assert.deepStrictEqual(api('GET', '/api/me', { token }).body.staff, { id: 1, username: 'alfred', name: 'Alfred Pennyworth', role: 'Clinic manager' });
     assert.strictEqual(api('GET', '/api/reports/workload', { token }).status, 200);
 
     const [bruce] = repo.searchPatients('Bruce Wayne');
@@ -53,11 +53,11 @@ for (const [engine, open] of ENGINES) {
     assert.strictEqual(api('DELETE', `/api/documents/${doc.body.id}`, { token }).status, 200);
 
     // Sessions expire after 8 hours
-    assert.strictEqual(api('GET', '/api/me', { token, now: '2026-10-15 17:49' }).status, 200);
-    assert.strictEqual(api('GET', '/api/me', { token, now: '2026-10-15 17:50' }).status, 401);
+    assert.ok(api('GET', '/api/me', { token, now: '2026-10-15 17:49' }).body.staff);
+    assert.strictEqual(api('GET', '/api/me', { token, now: '2026-10-15 17:50' }).body.staff, null);
 
     assert.strictEqual(api('POST', '/api/logout', { token }).status, 200);
-    assert.strictEqual(api('GET', '/api/me', { token }).status, 401);
+    assert.strictEqual(api('GET', '/api/me', { token }).body.staff, null);
     assert.strictEqual(api('GET', '/api/reports/workload', { token }).status, 401);
   });
 

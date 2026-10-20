@@ -32,6 +32,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 main { max-width: 1400px; margin: 0 auto; padding: 20px 24px 40px; outline: none; }
 .site-footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 0 16px 28px; }
 
+/* Staff sign-in: hidden until signed in */
+body:not(.is-staff) .staff-only { display: none !important; }
+.site-footer .staff-link { color: var(--muted); font-size: inherit; opacity: .75; }
+.site-footer .staff-link:hover { opacity: 1; }
+.staff-badge { display: flex; align-items: center; gap: 10px; font-size: .85rem; color: #c9d4e3; white-space: nowrap; }
+.staff-badge[hidden] { display: none; }
+.staff-name::before { content: "🔒 "; }
+.staff-badge .link-btn { color: var(--gold); }
+
 /* ---------- Building blocks ---------- */
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-weight: 600; text-decoration: none; color: var(--ink); }

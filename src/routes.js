@@ -45,7 +45,7 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toke
       if (token) repo.signOut(token);
       return ok({ ok: true });
     }
-    if (route('GET', /^\/api\/me$/)) return staff ? ok(staff) : fail(401, 'Not signed in');
+    if (route('GET', /^\/api\/me$/)) return ok({ staff });      // null when signed out (not an error)
 
     // ---- Clinic and providers
     if (route('GET', /^\/api\/clinic$/)) return ok({ hours: repo.clinicHours(), summary: repo.summary(today), today, now });

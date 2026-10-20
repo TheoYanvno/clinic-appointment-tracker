@@ -29,7 +29,10 @@ A clinic scheduling and patient records app for a busy outpatient clinic, based 
 - **Patient profiles:** demographics, contact and emergency contact, primary care provider, allergies, medications, and primary and secondary insurance (payer, plan, member ID, group, subscriber, copay)
 - **Patient photo upload**, cropped and resized in the browser before saving
 - **Medical document upload:** PDF, image or text files up to 5 MB, by button or drag and drop, with a title and category (lab result, imaging, referral and more); view, download or delete
-- **Reports:** today's visits, check-ins, no-show rate, and each provider's workload over a date range
+- **Reports:** today's visits, check-ins, no-show rate, and each provider's workload over a date range (staff only)
+- **Hidden staff sign-in:** there's no login button in the menu. Use the small **Staff** link in the footer or press **Ctrl+Shift+L**. Signed-in staff see the Reports tab and can delete documents; their name and a **Log out** link appear in the top bar.
+
+> **Demo staff accounts:** `alfred` (Clinic manager) or `lucius` (Front desk), password `gotham-demo`.
 
 Patients include DC Comics characters (Bruce Wayne's chart notes "frequent bruises; reports polo injuries") alongside generated patients.
 
@@ -43,6 +46,7 @@ Browser (vanilla JS) ──► api() ──┬─ Node server: fetch → src/ser
 
 - **One router, two places.** [`src/routes.js`](src/routes.js) is a plain function from request to `{ status, body }`. The Node server calls it for HTTP requests; the live demo calls it directly in the browser. Validation, status codes (200, 201, 400, 404, 409) and SQL are identical in both.
 - **One repository, two engines.** [`ClinicRepository`](src/ClinicRepository.js) owns every SQL statement and talks to a four-method driver: [`node:sqlite`](src/db/nodeDriver.js) on the server, [`sql.js`](src/db/sqljsDriver.js) in the browser. The tests run against both engines.
+- **Staff sign-in.** Passwords are never stored: each account keeps a random salt and a PBKDF2-HMAC-SHA256 hash ([`src/auth.js`](src/auth.js), checked against Node's `crypto` in the tests). Sign-in creates a random 256-bit session token that expires after 8 hours, and logging out deletes it. On the Node server the token lives only in an `HttpOnly`, `SameSite=Strict` cookie, so page scripts can't read it; the static live demo has no server, so it keeps the token in `localStorage`. Reports and document deletion return `401` without a session.
 - **The live demo** builds the clinic in the browser on first visit (about 2 seconds), then saves the database in IndexedDB after each change, so bookings and new patients survive a refresh. "Reset demo data" starts over.
 
 ## SQL highlights
@@ -60,6 +64,9 @@ Browser (vanilla JS) ──► api() ──┬─ Node server: fetch → src/ser
 
 | Method | Endpoint | Description |
 |---|---|---|
+| POST | `/api/login` | Staff sign-in with `{ username, password }`; sets the session cookie |
+| POST | `/api/logout` | Ends the session |
+| GET | `/api/me` | The signed-in staff member, or `{ staff: null }` |
 | GET | `/api/clinic` | Business hours and today's summary |
 | GET | `/api/providers?credential=NP&q=…` | Providers with weekly hours |
 | GET | `/api/providers/:id/slots?date=&duration=` | Open start times for a provider and day |
@@ -71,8 +78,8 @@ Browser (vanilla JS) ──► api() ──┬─ Node server: fetch → src/ser
 | GET / PUT | `/api/patients/:id` | Full profile with insurance, visits and documents / update |
 | PUT | `/api/patients/:id/photo` | `{ photo: "data:image/jpeg;base64,…" }` or `null` to remove |
 | GET / POST | `/api/patients/:id/documents` | List / upload `{ title, category, fileName, mimeType, dataBase64 }` |
-| GET / DELETE | `/api/documents/:id` | Download (base64) / delete |
-| GET | `/api/reports/workload?from=&to=` | Visits, completed, no-shows and no-show rate per provider |
+| GET / DELETE | `/api/documents/:id` | Download (base64) / delete (delete is staff only) |
+| GET | `/api/reports/workload?from=&to=` | Visits, completed, no-shows and no-show rate per provider (staff only) |
 
 ## Run it
 
@@ -80,7 +87,7 @@ Requires Node.js 22.13 or newer (it uses the built-in `node:sqlite` module, so t
 
 ```bash
 npm start            # Node server at http://localhost:3000 (creates clinic.db with sample data)
-npm test             # 38 tests, run on both node:sqlite and sql.js
+npm test             # 44 tests, run on both node:sqlite and sql.js
 npm run build:site   # build the in-browser version into docs/ for GitHub Pages
 npm run preview      # try that version at http://localhost:4000
 ```
@@ -92,15 +99,18 @@ npm run preview      # try that version at http://localhost:4000
 | `sql/` | Schema and example report queries |
 | `src/ClinicRepository.js` | Every SQL statement: providers, patients, insurance, appointments, documents, reports |
 | `src/routes.js` | REST routes shared by the server and the browser |
+| `src/auth.js` | Password hashing (PBKDF2-HMAC-SHA256) and session tokens, same code in Node and the browser |
 | `src/validation.js` | Input rules for appointments, patients, photos and documents |
 | `src/schedule.js` | Date and time helpers (weeks, month grid, quarter hours) |
 | `src/seed/` | Sample providers, DC character patients and the appointment generator |
 | `public/js/` | Front end: schedule views, booking, patient form, documents, providers, reports |
 | `public/js/local.js` | Live demo backend: sql.js + IndexedDB |
-| `test/` | Repository, scheduling, API and validation tests |
+| `public/js/staff.js` | Hidden staff sign-in dialog, top-bar badge and log out |
+| `test/` | Repository, scheduling, API, validation and sign-in tests |
 
 ## Notes
 
+- The demo staff password is public on purpose. A real deployment would add sign-in rate limiting, HTTPS and accounts managed by an administrator.
 - All people, phone numbers (555-01xx), addresses, insurance plans and medical details are fictional. Do not enter real health information; this is a portfolio demo, not a HIPAA-compliant system.
 - Patient names are DC Comics characters used for fun. Gotham Hospital is not affiliated with DC.
 - sql.js 1.10.3 (MIT) is included in [`public/vendor/`](public/vendor).

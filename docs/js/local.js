@@ -62,12 +62,23 @@ async function start() {
   return { repo, persist };
 }
 
+// The demo has no server to set a cookie, so the staff session token is kept in this browser's storage.
+const TOKEN_KEY = 'gotham-staff-session';
+const readToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
+const writeToken = (token) => { try { token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY); } catch {} };
+
 /** Same contract as the HTTP API: resolves to { status, body }. */
 export async function request(method, path, body) {
   ready ??= start();
   const { repo, persist } = await ready;
   const url = new URL(path, location.origin);
-  const result = handle(repo, { method, path: url.pathname, query: Object.fromEntries(url.searchParams), body: body ?? {} });
+  const result = handle(repo, { method, path: url.pathname, query: Object.fromEntries(url.searchParams), body: body ?? {}, token: readToken() });
+  if (url.pathname === '/api/login' && result.status === 200) {
+    writeToken(result.body.token);
+    const { token, ...rest } = result.body;           // hide it from the page, like the server does
+    result.body = rest;
+  }
+  if (url.pathname === '/api/logout') writeToken(null);
   if (method !== 'GET' && result.status < 400) persist();
   return { status: result.status, body: JSON.parse(JSON.stringify(result.body)) };   // same shape a real response would have
 }

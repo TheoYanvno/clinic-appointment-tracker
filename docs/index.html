@@ -19,9 +19,10 @@
       <a href="#/schedule" data-tab="schedule">Schedule</a>
       <a href="#/patients" data-tab="patients">Patients</a>
       <a href="#/providers" data-tab="providers">Providers</a>
-      <a href="#/reports" data-tab="reports">Reports</a>
+      <a href="#/reports" data-tab="reports" class="staff-only">Reports</a>
     </nav>
     <div class="clock" id="clock" aria-live="off"></div>
+    <div class="staff-badge" id="staffBadge" hidden></div>
   </header>
 
   <p class="demo-banner" id="banner">Demo with fictional patients. Do not enter real health information.</p>
@@ -65,11 +66,25 @@
     <div class="dialog-body" id="apptBody"></div>
   </dialog>
 
+  <!-- Staff sign-in (opened from the footer link or Ctrl+Shift+L) -->
+  <dialog id="staffDialog" class="dialog small" aria-labelledby="staffTitle">
+    <form id="staffForm" novalidate>
+      <header><h2 id="staffTitle">Staff sign-in</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></header>
+      <div class="dialog-body">
+        <label class="field">Username <input id="staffUser" autocomplete="username" required></label>
+        <label class="field">Password <input id="staffPass" type="password" autocomplete="current-password" required></label>
+        <p class="form-errors" id="staffErrors" role="alert"></p>
+      </div>
+      <footer><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn primary" id="staffSubmit">Sign in</button></footer>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <footer class="site-footer">
     Gotham Hospital is a fictional demo. Patient names are DC Comics characters used for fun; not affiliated with DC.
-    Built by Anthony Evo · <a href="https://github.com/TheoYanvno/clinic-appointment-tracker">Source code</a>
+    Built by Anthony Evo · <a href="https://github.com/TheoYanvno/clinic-appointment-tracker">Source code</a> ·
+    <button type="button" class="link-btn staff-link" id="staffLink">Staff</button>
   </footer>
 
   <script type="module" src="js/app.js"></script>

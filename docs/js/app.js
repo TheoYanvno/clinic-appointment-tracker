@@ -6,6 +6,7 @@ import { renderPatientList, renderPatient } from './patients-view.js';
 import { renderPatientForm } from './patient-form.js';
 import { renderProviders } from './providers-view.js';
 import { renderReports } from './reports-view.js';
+import { initStaff, staff, openSignIn, onStaffChange } from './staff.js';
 
 const main = $('#view');
 
@@ -20,6 +21,10 @@ async function route() {
     else if (section === 'patients' && id) await renderPatient(main, Number(id));
     else if (section === 'patients') await renderPatientList(main, params);
     else if (section === 'providers') await renderProviders(main, params);
+    else if (section === 'reports' && !staff()) {
+      main.innerHTML = `<p class="empty">Reports are for clinic staff. <button type="button" class="btn primary" id="reportsSignIn">Staff sign-in</button></p>`;
+      $('#reportsSignIn').onclick = openSignIn;
+    }
     else if (section === 'reports') await renderReports(main, params);
     else await renderSchedule(main, params);
   } catch (err) {
@@ -53,4 +58,10 @@ addEventListener('hashchange', () => {
 });
 tick();
 setInterval(tick, 30000);
+// Re-draw when staff sign in or out, so the Reports page and Delete buttons update straight away
+onStaffChange((who) => {
+  if (!who && location.hash.startsWith('#/reports')) location.hash = '#/schedule';
+  else if (location.hash.startsWith('#/reports')) route();
+});
+await initStaff();
 route();
