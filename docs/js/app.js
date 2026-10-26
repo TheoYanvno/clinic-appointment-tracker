@@ -6,13 +6,14 @@ import { renderPatientList, renderPatient } from './patients-view.js';
 import { renderPatientForm } from './patient-form.js';
 import { renderProviders } from './providers-view.js';
 import { renderReports } from './reports-view.js';
+import { renderBatcave } from './batcave-view.js';
 import { initStaff, staff, can, onStaffChange } from './staff.js';
 
 const main = $('#view');
 
 // Each tab and the permission it needs; the first one a role can use is its home page.
-const SECTIONS = { schedule: 'schedule:read', patients: 'patients', providers: 'schedule:read', reports: 'reports' };
-const HOME = { customer_service: 'schedule', medical_staff: 'patients' };
+const SECTIONS = { schedule: 'schedule:read', patients: 'patients', providers: 'schedule:read', reports: 'reports', batcave: 'batfamily' };
+const HOME = { customer_service: 'schedule', medical_staff: 'patients', bat_family: 'batcave' };
 
 async function route() {
   if (!staff()) { main.innerHTML = ''; return; }                // the sign-in screen is showing
@@ -33,6 +34,7 @@ async function route() {
     else if (section === 'patients') await renderPatientList(main, params);
     else if (section === 'providers') await renderProviders(main, params);
     else if (section === 'reports') await renderReports(main, params);
+    else if (section === 'batcave') await renderBatcave(main);
     else await renderSchedule(main, params);
   } catch (err) {
     main.innerHTML = `<p class="empty">Something went wrong: ${err.message}</p>`;

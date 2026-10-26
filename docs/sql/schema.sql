@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS staff (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
   username       TEXT    NOT NULL COLLATE NOCASE,
   display_name   TEXT    NOT NULL,
-  role           TEXT    NOT NULL CHECK (role IN ('customer_service', 'medical_staff')),
+  role           TEXT    NOT NULL CHECK (role IN ('customer_service', 'medical_staff', 'bat_family')),
   password_salt  TEXT    NOT NULL,
   password_hash  TEXT    NOT NULL,
   iterations     INTEGER NOT NULL,
@@ -128,4 +128,22 @@ CREATE TABLE IF NOT EXISTS sessions (
   staff_id    INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
   created_at  TEXT    NOT NULL,
   expires_at  TEXT    NOT NULL
+);
+
+-- Restricted records, readable only by the bat_family role
+CREATE TABLE IF NOT EXISTS bat_family_records (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  alias              TEXT    NOT NULL UNIQUE,
+  real_name          TEXT    NOT NULL,
+  age                INTEGER NOT NULL CHECK (age > 0),
+  blood_type         TEXT    NOT NULL CHECK (blood_type IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')),
+  height             TEXT    NOT NULL,
+  clearance          TEXT    NOT NULL CHECK (clearance IN ('cleared', 'restricted', 'against_advice')),
+  conditions         TEXT    NOT NULL,
+  injuries           TEXT    NOT NULL,
+  allergies          TEXT    NOT NULL,
+  medications        TEXT    NOT NULL,
+  emergency_contact  TEXT    NOT NULL,
+  last_visit         TEXT    NOT NULL,
+  notes              TEXT
 );

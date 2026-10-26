@@ -25,6 +25,7 @@ const NOT_ALLOWED = 'Your sign-in does not have access to this';
 // Which permission each part of the API needs (see PERMISSIONS in src/seed/staff.js).
 // Customer service can see patient names to book visits, but only medical staff can open a patient's chart.
 const RULES = [
+  [/^\/api\/batfamily(\/|$)/, () => 'batfamily'],
   [/^\/api\/reports\//, () => 'reports'],
   [/^\/api\/documents\/\d+$/, (method) => (method === 'DELETE' ? 'documents:delete' : 'patients')],
   [/^\/api\/patients$/, (method) => (method === 'GET' ? 'patients:search' : 'patients')],
@@ -158,6 +159,9 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toke
       }
       return repo.updateStatus(params[0], body.status) ? ok({ ok: true }) : fail(404, 'Appointment not found');
     }
+
+    // ---- Restricted records (bat_family role only)
+    if (route('GET', /^\/api\/batfamily$/)) return ok(repo.batFamily(today));
 
     // ---- Reports
     if (route('GET', /^\/api\/reports\/workload$/)) return ok(repo.providerWorkload({ from: query.from, to: query.to }));

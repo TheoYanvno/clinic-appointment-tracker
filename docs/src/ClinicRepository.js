@@ -4,6 +4,7 @@
 import { seedDatabase } from './seed/generate.js';
 import { weekdayOf, toMinutes, toTime } from './schedule.js';
 import { STAFF, USERNAME } from './seed/staff.js';
+import { BAT_FAMILY } from './seed/batfamily.js';
 import { checkPassword, randomHex } from './auth.js';
 
 const SESSION_HOURS = 8;
@@ -31,7 +32,7 @@ export class ClinicRepository {
   init({ schema, seed = true, ...seedOptions }) {
     // Databases saved before role-based sign-in have the old staff table: rebuild it (and sessions)
     const oldStaff = this.db.get("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'staff'");
-    if (oldStaff && !oldStaff.sql.includes('customer_service')) this.db.exec('DROP TABLE IF EXISTS sessions; DROP TABLE staff;');
+    if (oldStaff && !oldStaff.sql.includes('bat_family')) this.db.exec('DROP TABLE IF EXISTS sessions; DROP TABLE staff;');
     this.db.exec(schema);
     const { n } = this.db.get('SELECT COUNT(*) AS n FROM providers');
     if (seed && n === 0) seedDatabase(this.db, seedOptions);     // { today, now, generatedPatients }
@@ -40,6 +41,14 @@ export class ClinicRepository {
       for (const s of STAFF) {
         this.db.run('INSERT INTO staff (username, display_name, role, password_salt, password_hash, iterations) VALUES (?, ?, ?, ?, ?, ?)',
           [USERNAME, s.name, s.role, s.salt, s.hash, s.iterations]);
+      }
+    }
+    if (seed && this.db.get('SELECT COUNT(*) AS n FROM bat_family_records').n === 0) {
+      for (const r of BAT_FAMILY) {
+        this.db.run(`INSERT INTO bat_family_records (alias, real_name, age, blood_type, height, clearance, conditions, injuries,
+                       allergies, medications, emergency_contact, last_visit, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [r.alias, r.realName, r.age, r.bloodType, r.height, r.clearance, r.conditions, r.injuries, r.allergies, r.medications,
+          r.emergency, r.lastVisit, r.notes]);
       }
     }
     return this;
@@ -346,6 +355,18 @@ export class ClinicRepository {
       SELECT st.id, st.username, st.display_name AS name, st.role
       FROM sessions se JOIN staff st ON st.id = se.staff_id
       WHERE se.token = ? AND se.expires_at > ?`, [token, now]) ?? null;
+  }
+
+  // ---------- Restricted records ----------
+
+  /** The Bat-family's charts, field-cleared first, with the days since each last visit. */
+  batFamily(today) {
+    return this.db.all(`
+      SELECT id, alias, real_name AS realName, age, blood_type AS bloodType, height, clearance, conditions, injuries,
+             allergies, medications, emergency_contact AS emergencyContact, last_visit AS lastVisit, notes,
+             CAST(julianday(?) - julianday(last_visit) AS INTEGER) AS daysSinceVisit
+      FROM bat_family_records
+      ORDER BY CASE clearance WHEN 'against_advice' THEN 0 WHEN 'restricted' THEN 1 ELSE 2 END, age DESC`, [today]);
   }
 
   signOut(token) {

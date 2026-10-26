@@ -30,7 +30,7 @@ for (const [engine, open] of ENGINES) {
     const login = (password, username = 'Gotham Staff') => api('POST', '/api/login', { body: { username, password } });
 
     // Signed out: only sign-in works
-    for (const path of ['/api/patients', '/api/appointments', '/api/providers', '/api/clinic', '/api/reports/workload']) {
+    for (const path of ['/api/patients', '/api/appointments', '/api/providers', '/api/clinic', '/api/reports/workload', '/api/batfamily']) {
       assert.strictEqual(api('GET', path).status, 401, path);
     }
     assert.strictEqual(api('GET', '/api/me').body.staff, null);
@@ -45,13 +45,14 @@ for (const [engine, open] of ENGINES) {
     assert.deepStrictEqual(api('GET', '/api/me', { token: cs.body.token }).body.staff,
       { id: 1, username: 'Gotham Staff', name: 'Customer Service', role: 'customer_service' });
     assert.strictEqual(login('medicalstaff').body.staff.role, 'medical_staff');
+    assert.strictEqual(login('batman').body.staff.role, 'bat_family');
   });
 
   test(`${engine}: each role sees only its part of the portal`, () => {
     const repo = clinic(open);
     const api = (method, path, { body, token } = {}) => handle(repo, { method, path, body, token, now: NOW, today: NOW.slice(0, 10) });
     const tokenFor = (password) => api('POST', '/api/login', { body: { username: 'Gotham Staff', password } }).body.token;
-    const [cs, med] = ['customerservice', 'medicalstaff'].map(tokenFor);
+    const [cs, med, bat] = ['customerservice', 'medicalstaff', 'batman'].map(tokenFor);
     const [bruce] = repo.searchPatients('Bruce Wayne');
 
     // Customer service: schedule, booking and reports; patient names for booking but not their charts
@@ -60,6 +61,7 @@ for (const [engine, open] of ENGINES) {
     }
     assert.strictEqual(api('GET', `/api/patients/${bruce.id}`, { token: cs }).status, 403);
     assert.strictEqual(api('GET', `/api/patients/${bruce.id}/documents`, { token: cs }).status, 403);
+    assert.strictEqual(api('GET', '/api/batfamily', { token: cs }).status, 403);
 
     // Medical staff: charts and documents, schedule to read, but no booking or reports
     assert.strictEqual(api('GET', `/api/patients/${bruce.id}`, { token: med }).status, 200);
@@ -72,6 +74,16 @@ for (const [engine, open] of ENGINES) {
     assert.strictEqual(api('DELETE', `/api/documents/${doc.body.id}`, { token: cs }).status, 403);
     assert.strictEqual(api('DELETE', `/api/documents/${doc.body.id}`, { token: med }).status, 200);
 
+    // The third password: nothing of the clinic's
+    for (const path of ['/api/appointments', '/api/patients', `/api/patients/${bruce.id}`, '/api/reports/workload']) {
+      assert.strictEqual(api('GET', path, { token: bat }).status, 403, path);
+    }
+    const files = api('GET', '/api/batfamily', { token: bat });
+    assert.strictEqual(files.status, 200);
+    assert.strictEqual(files.body.length, 9);
+    assert.deepStrictEqual([files.body[0].alias, files.body[0].realName, files.body[0].clearance], ['Batman', 'Bruce Wayne', 'against_advice']);
+    assert.strictEqual(files.body.find((r) => r.alias === 'Nightwing').daysSinceVisit, 17);   // Sept 28 → Oct 15
+    assert.strictEqual(api('GET', '/api/batfamily', { token: med }).status, 403);
   });
 
   test(`${engine}: sessions expire after 8 hours and end at sign-out`, () => {
@@ -88,9 +100,9 @@ for (const [engine, open] of ENGINES) {
   test(`${engine}: only hashes are stored, never passwords`, () => {
     const repo = clinic(open);
     const rows = repo.db.all('SELECT * FROM staff');
-    assert.strictEqual(rows.length, 2);
+    assert.strictEqual(rows.length, 3);
     for (const r of rows) {
-      assert.ok(!/customerservice|medicalstaff/.test(JSON.stringify(r)));
+      assert.ok(!/customerservice|medicalstaff|batman/.test(JSON.stringify(r)));
       assert.match(r.password_hash, /^[0-9a-f]{64}$/);
     }
   });
@@ -102,6 +114,6 @@ for (const [engine, open] of ENGINES) {
       CREATE TABLE sessions (token TEXT PRIMARY KEY, staff_id INTEGER, created_at TEXT, expires_at TEXT);
       INSERT INTO staff VALUES (1, 'alfred', 'Alfred', 'Clinic manager', 'aa', 'bb', 1);`);
     const repo = clinic(() => db);
-    assert.deepStrictEqual(repo.db.all('SELECT role FROM staff ORDER BY id').map((r) => r.role), ['customer_service', 'medical_staff']);
+    assert.deepStrictEqual(repo.db.all('SELECT role FROM staff ORDER BY id').map((r) => r.role), ['customer_service', 'medical_staff', 'bat_family']);
   });
 }

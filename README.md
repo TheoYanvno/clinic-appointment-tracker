@@ -37,6 +37,8 @@ A clinic scheduling and patient records app for a busy outpatient clinic, based 
 | `customerservice` | Customer service | Schedule, booking, check-in, providers and reports. Patient names for booking, but not their charts |
 | `medicalstaff` | Medical staff | Patient profiles, insurance, clinical notes and documents (including deleting documents), and the schedule to read |
 
+A third password opens **Bat-Family Records**, a dark "Batcave" view of the Bat-family's real charts (who's under which mask, injuries, allergies, and whether they're cleared for field work), and nothing else. Hint: it's Gotham's most famous resident, in lowercase.
+
 The API enforces the same rules: no session returns `401`, and a role asking for something outside its permissions returns `403`.
 
 Patients include DC Comics characters (Bruce Wayne's chart notes "frequent bruises; reports polo injuries") alongside generated patients.

@@ -246,3 +246,23 @@ textarea { width: 100%; min-height: 70px; resize: vertical; }
 .doc-actions .btn { padding: 4px 8px; }
 
 .link-btn { border: 0; background: none; padding: 0; color: #6b5310; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* ---------- Bat-family records (third password) ---------- */
+body[data-role="bat_family"] { --bg: #0d0f13; --card: #171a21; --ink: #e8eaee; --muted: #9aa3b0; --line: #2a2f3a; --gold: #f2c230; }
+body[data-role="bat_family"] .topbar { background: #050608; }
+body[data-role="bat_family"] .demo-banner { background: #1d1a0d; color: #e8d690; border-color: #3a3418; }
+body[data-role="bat_family"] .site-footer { color: #6f7785; }
+.batcave-head { flex-direction: column; align-items: flex-start; gap: 2px; }
+.bat-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip-btn { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; font-weight: 600; font-size: .85rem; }
+.chip-btn[aria-pressed="true"] { background: var(--gold); color: #111; border-color: var(--gold); }
+.bat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.bat-card { background: var(--card); border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: var(--radius); padding: 16px; animation: rise .4s ease both; }
+.bat-card header { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+.bat-card h2 { margin: 0; font-size: 1.1rem; }
+.bat-card .alias { margin: 2px 0 0; color: var(--gold); font-size: .8rem; text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
+.clearance { font-size: .7rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-align: center; max-width: 140px; }
+.clearance.ok { background: #12351f; color: #7be3a0; } .clearance.hold { background: #3a2a0c; color: #f5c46b; } .clearance.warn { background: #3d1316; color: #ff8f8f; }
+.bat-note { margin: 10px 0 0; padding: 8px 10px; border-left: 3px solid var(--gold); background: rgba(242, 194, 48, .07); font-size: .88rem; font-style: italic; }
+.bat-foot { margin-top: 18px; font-size: .8rem; }
+@media (max-width: 400px) { .bat-grid { grid-template-columns: 1fr; } }
