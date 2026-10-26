@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { ENGINES } from './engines.js';
-import { clinic, NOW } from './fixture.js';
+import { clinic, NOW, signIn } from './fixture.js';
 import { handle } from '../src/routes.js';
 import { weekOf, monthGrid, addDays, weekdayOf } from '../src/schedule.js';
 
@@ -44,7 +44,8 @@ for (const [engine, open] of ENGINES) {
 
   test(`${engine}: API books an open slot (201) and refuses a clash (409) or bad input (400)`, () => {
     const db = clinic(open);
-    const api = (method, path, body, query) => handle(db, { method, path, body, query, today: '2026-10-15', now: NOW });
+    const token = signIn(db, 'customerservice');                       // booking is customer service's job
+    const api = (method, path, body, query) => handle(db, { method, path, body, query, token, today: '2026-10-15', now: NOW });
     const [free] = api('GET', `/api/providers/${thompkins.id}/slots`, undefined, { date: '2026-10-23', duration: '30' }).body;
     const visit = { patientId: 5, providerId: thompkins.id, startsAt: `2026-10-23 ${free}`, duration: 30, visitType: 'Sick visit', reason: 'Sore throat' };
     const created = api('POST', '/api/appointments', visit);
@@ -62,7 +63,8 @@ for (const [engine, open] of ENGINES) {
 
   test(`${engine}: API validates new patients`, () => {
     const db = clinic(open);
-    const api = (method, path, body) => handle(db, { method, path, body, today: '2026-10-15', now: NOW });
+    const token = signIn(db, 'medicalstaff');                          // patient charts are medical staff only
+    const api = (method, path, body) => handle(db, { method, path, body, token, today: '2026-10-15', now: NOW });
     assert.strictEqual(api('POST', '/api/patients', { first_name: 'Rex' }).status, 400);
     const created = api('POST', '/api/patients', { first_name: 'Rex', last_name: 'Mason', birth_date: '1979-03-05', sex: 'M' });
     assert.strictEqual(created.status, 201);
@@ -74,11 +76,12 @@ for (const [engine, open] of ENGINES) {
 for (const [engine, open] of ENGINES) {
   test(`${engine}: patient photo can be saved, replaced and removed`, () => {
     const db = clinic(open);
-    const api = (method, path, body) => handle(db, { method, path, body, today: '2026-10-15', now: NOW });
+    const token = signIn(db, 'medicalstaff');                          // patient charts are medical staff only
+    const api = (method, path, body) => handle(db, { method, path, body, token, today: '2026-10-15', now: NOW });
     const photo = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==';
     assert.strictEqual(api('PUT', '/api/patients/1/photo', { photo }).status, 200);
     assert.strictEqual(api('GET', '/api/patients/1').body.photo, photo);
-    assert.strictEqual(handle(db, { path: '/api/patients', query: { q: 'Bruce Wayne' } }).body[0].hasPhoto, 1);
+    assert.strictEqual(handle(db, { path: '/api/patients', query: { q: 'Bruce Wayne' }, token, now: NOW }).body[0].hasPhoto, 1);
     assert.strictEqual(api('PUT', '/api/patients/1/photo', { photo: 'data:text/html;base64,PHNjcmlwdD4=' }).status, 400);
     assert.strictEqual(api('PUT', '/api/patients/1/photo', { photo: `data:image/png;base64,${'A'.repeat(500_000)}` }).status, 400);
     assert.strictEqual(api('PUT', '/api/patients/1/photo', { photo: null }).status, 200);
@@ -90,7 +93,8 @@ for (const [engine, open] of ENGINES) {
 for (const [engine, open] of ENGINES) {
   test(`${engine}: documents upload as base64, are stored as BLOBs, download intact and can be deleted`, () => {
     const db = clinic(open);
-    const api = (method, path, body) => handle(db, { method, path, body, today: '2026-10-15', now: NOW });
+    const token = signIn(db, 'medicalstaff');                          // patient charts are medical staff only
+    const api = (method, path, body) => handle(db, { method, path, body, token, today: '2026-10-15', now: NOW });
     assert.ok(api('GET', '/api/patients/1').body.documents.some((d) => d.title === 'Chest X-ray report'));   // seeded sample
     const bytes = new Uint8Array(70000).map((_, i) => (i * 31) % 256);                                // binary, not text
     const upload = { title: 'MRI knee', category: 'Imaging', fileName: 'mri.pdf', mimeType: 'application/pdf', dataBase64: Buffer.from(bytes).toString('base64') };
@@ -103,8 +107,7 @@ for (const [engine, open] of ENGINES) {
     assert.strictEqual(api('POST', '/api/patients/2/documents', { ...upload, category: 'Selfie' }).status, 400);
     assert.strictEqual(api('POST', '/api/patients/2/documents', { ...upload, dataBase64: 'A'.repeat(7_200_000) }).status, 400);
     assert.strictEqual(api('POST', '/api/patients/999999/documents', upload).status, 404);
-    const { token } = api('POST', '/api/login', { username: 'lucius', password: 'gotham-demo' }).body;    // deleting is staff-only
-    assert.strictEqual(handle(db, { method: 'DELETE', path: `/api/documents/${created.body.id}`, token, now: NOW }).status, 200);
+    assert.strictEqual(api('DELETE', `/api/documents/${created.body.id}`).status, 200);             // medical staff may delete
     assert.strictEqual(api('GET', `/api/documents/${created.body.id}`).status, 404);
   });
 }

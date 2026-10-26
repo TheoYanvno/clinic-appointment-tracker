@@ -41,7 +41,7 @@ export async function renderPatient(main, id) {
         <p class="muted">${esc(p.mrn)} · DOB ${usDate(p.birth_date)} (${ageOn(p.birth_date)} years) · ${{ F: 'Female', M: 'Male', X: 'X' }[p.sex]}</p>
         <p>Primary care: <strong>${esc(p.primary_provider ?? 'None')}</strong></p>
       </div>
-      <div class="status-actions"><a class="btn" href="#/patients/${p.id}/edit">Edit profile</a><button class="btn primary" id="bookForPatient">+ Book appointment</button></div>
+      <div class="status-actions"><a class="btn" href="#/patients/${p.id}/edit">Edit profile</a><button class="btn primary cs-only" id="bookForPatient">+ Book appointment</button></div>
     </section>
     <div class="row" style="margin-top:14px;gap:14px">
       <section class="card"><h2>Contact</h2><dl class="detail-list">

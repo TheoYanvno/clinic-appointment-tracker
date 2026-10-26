@@ -9,9 +9,25 @@
   <link rel="icon" href="img/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="signed-out">
+  <!-- Staff sign-in: the first thing that loads. The password decides which part of the portal opens. -->
+  <section class="signin-screen" id="signinScreen" aria-labelledby="signinTitle">
+    <form class="signin-card" id="staffForm" novalidate>
+      <img src="img/logo.svg" alt="" width="64" height="64">
+      <h1 id="signinTitle">Gotham Hospital</h1>
+      <p class="signin-sub">Staff sign-in</p>
+      <label class="field">Username <input id="staffUser" autocomplete="username" required value="Gotham Staff"></label>
+      <label class="field">Password <input id="staffPass" type="password" autocomplete="current-password" required></label>
+      <p class="form-errors" id="staffErrors" role="alert"></p>
+      <button class="btn gold" id="staffSubmit">Sign in</button>
+      <p class="signin-hint" id="signinHint" hidden></p>
+    </form>
+    <p class="signin-foot">Fictional demo. Not affiliated with DC. Built by Anthony Evo ·
+      <a href="https://github.com/TheoYanvno/clinic-appointment-tracker">Source code</a></p>
+  </section>
+
   <header class="topbar">
-    <a class="brand" href="#/schedule" aria-label="Gotham Hospital Patient Portal home">
+    <a class="brand" href="#/" aria-label="Gotham Hospital Patient Portal home">
       <img src="img/logo.svg" alt="" width="36" height="36">
       <span><strong>Gotham Hospital</strong><small>Patient Portal</small></span>
     </a>
@@ -19,7 +35,7 @@
       <a href="#/schedule" data-tab="schedule">Schedule</a>
       <a href="#/patients" data-tab="patients">Patients</a>
       <a href="#/providers" data-tab="providers">Providers</a>
-      <a href="#/reports" data-tab="reports" class="staff-only">Reports</a>
+      <a href="#/reports" data-tab="reports">Reports</a>
     </nav>
     <div class="clock" id="clock" aria-live="off"></div>
     <div class="staff-badge" id="staffBadge" hidden></div>
@@ -66,25 +82,11 @@
     <div class="dialog-body" id="apptBody"></div>
   </dialog>
 
-  <!-- Staff sign-in (opened from the footer link or Ctrl+Shift+L) -->
-  <dialog id="staffDialog" class="dialog small" aria-labelledby="staffTitle">
-    <form id="staffForm" novalidate>
-      <header><h2 id="staffTitle">Staff sign-in</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></header>
-      <div class="dialog-body">
-        <label class="field">Username <input id="staffUser" autocomplete="username" required></label>
-        <label class="field">Password <input id="staffPass" type="password" autocomplete="current-password" required></label>
-        <p class="form-errors" id="staffErrors" role="alert"></p>
-      </div>
-      <footer><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn primary" id="staffSubmit">Sign in</button></footer>
-    </form>
-  </dialog>
-
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <footer class="site-footer">
     Gotham Hospital is a fictional demo. Patient names are DC Comics characters used for fun; not affiliated with DC.
-    Built by Anthony Evo · <a href="https://github.com/TheoYanvno/clinic-appointment-tracker">Source code</a> ·
-    <button type="button" class="link-btn staff-link" id="staffLink">Staff</button>
+    Built by Anthony Evo · <a href="https://github.com/TheoYanvno/clinic-appointment-tracker">Source code</a>
   </footer>
 
   <script type="module" src="js/app.js"></script>

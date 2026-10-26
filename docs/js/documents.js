@@ -25,7 +25,7 @@ export function documentsSection(docs) {
     ${docs.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Title</th><th>Category</th><th>File</th><th class="num">Size</th><th>Uploaded</th><th></th></tr></thead><tbody>
       ${docs.map((d) => `<tr><td><strong>${esc(d.title)}</strong></td><td>${esc(d.category)}</td><td class="muted">${esc(d.fileName)}</td>
         <td class="num">${size(d.size)}</td><td>${usDate(d.uploadedAt.slice(0, 10))} ${clockTime(d.uploadedAt.slice(11, 16))}</td>
-        <td class="doc-actions"><button class="btn ghost" data-view="${d.id}">View</button><button class="btn ghost" data-download="${d.id}">Download</button><button class="btn ghost danger staff-only" data-delete="${d.id}" aria-label="Delete ${esc(d.title)}">Delete</button></td></tr>`).join('')}
+        <td class="doc-actions"><button class="btn ghost" data-view="${d.id}">View</button><button class="btn ghost" data-download="${d.id}">Download</button><button class="btn ghost danger med-only" data-delete="${d.id}" aria-label="Delete ${esc(d.title)}">Delete</button></td></tr>`).join('')}
       </tbody></table></div>` : '<p class="muted">No documents uploaded yet.</p>'}
   </section>`;
 }

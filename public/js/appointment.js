@@ -1,6 +1,7 @@
 // Appointment details dialog with check-in / complete / no-show / cancel actions.
 import { api } from './api.js';
 import { $, esc, longDate, clockTime, statusBadge, toast, today } from './ui.js';
+import { can } from './staff.js';
 
 const ACTIONS = {
   scheduled: [['checked_in', 'Check in', 'primary'], ['no_show', 'Mark no-show', ''], ['cancelled', 'Cancel visit', 'danger']],
@@ -16,14 +17,14 @@ export async function openAppointment(id, onChange = () => {}) {
   $('#apptTitle').textContent = `${a.visitType}`;
   $('#apptBody').innerHTML = `
     <dl class="detail-list">
-      <dt>Patient</dt><dd><a href="#/patients/${a.patientId}" data-close>${esc(a.patient)}</a> <span class="muted">${esc(a.mrn)}</span></dd>
+      <dt>Patient</dt><dd>${can('patients') ? `<a href="#/patients/${a.patientId}" data-close>${esc(a.patient)}</a>` : esc(a.patient)} <span class="muted">${esc(a.mrn)}</span></dd>
       <dt>Provider</dt><dd>${esc(a.provider)} <span class="muted">· ${esc(a.specialty)}</span></dd>
       <dt>When</dt><dd>${longDate(a.startsAt.slice(0, 10))}<br>${clockTime(a.startsAt.slice(11))} – ${clockTime(end)} (${a.duration} min)</dd>
       <dt>Reason</dt><dd>${esc(a.reason)}</dd>
       <dt>Status</dt><dd>${statusBadge(a.status)}</dd>
     </dl>
     <div class="status-actions">
-      ${(ACTIONS[a.status] ?? []).filter(([s]) => !(s === 'checked_in' && a.startsAt.slice(0, 10) > today()))
+      ${(can('schedule:write') ? ACTIONS[a.status] ?? [] : []).filter(([s]) => !(s === 'checked_in' && a.startsAt.slice(0, 10) > today()))
         .map(([status, label, style]) => `<button class="btn ${style}" data-status="${status}">${label}</button>`).join('')}
     </div>
     <p class="form-errors" id="apptErrors" role="alert"></p>`;

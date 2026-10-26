@@ -29,10 +29,15 @@ A clinic scheduling and patient records app for a busy outpatient clinic, based 
 - **Patient profiles:** demographics, contact and emergency contact, primary care provider, allergies, medications, and primary and secondary insurance (payer, plan, member ID, group, subscriber, copay)
 - **Patient photo upload**, cropped and resized in the browser before saving
 - **Medical document upload:** PDF, image or text files up to 5 MB, by button or drag and drop, with a title and category (lab result, imaging, referral and more); view, download or delete
-- **Reports:** today's visits, check-ins, no-show rate, and each provider's workload over a date range (staff only)
-- **Hidden staff sign-in:** there's no login button in the menu. Use the small **Staff** link in the footer or press **Ctrl+Shift+L**. Signed-in staff see the Reports tab and can delete documents; their name and a **Log out** link appear in the top bar.
+- **Reports:** today's visits, check-ins, no-show rate, and each provider's workload over a date range
+- **Staff sign-in comes first:** nothing loads until someone signs in. Everyone uses the username **Gotham Staff**, and the password decides what opens:
 
-> **Demo staff accounts:** `alfred` (Clinic manager) or `lucius` (Front desk), password `gotham-demo`.
+| Password | Role | Sees |
+|---|---|---|
+| `customerservice` | Customer service | Schedule, booking, check-in, providers and reports. Patient names for booking, but not their charts |
+| `medicalstaff` | Medical staff | Patient profiles, insurance, clinical notes and documents (including deleting documents), and the schedule to read |
+
+The API enforces the same rules: no session returns `401`, and a role asking for something outside its permissions returns `403`.
 
 Patients include DC Comics characters (Bruce Wayne's chart notes "frequent bruises; reports polo injuries") alongside generated patients.
 
@@ -46,7 +51,7 @@ Browser (vanilla JS) ──► api() ──┬─ Node server: fetch → src/ser
 
 - **One router, two places.** [`src/routes.js`](src/routes.js) is a plain function from request to `{ status, body }`. The Node server calls it for HTTP requests; the live demo calls it directly in the browser. Validation, status codes (200, 201, 400, 404, 409) and SQL are identical in both.
 - **One repository, two engines.** [`ClinicRepository`](src/ClinicRepository.js) owns every SQL statement and talks to a four-method driver: [`node:sqlite`](src/db/nodeDriver.js) on the server, [`sql.js`](src/db/sqljsDriver.js) in the browser. The tests run against both engines.
-- **Staff sign-in.** Passwords are never stored: each account keeps a random salt and a PBKDF2-HMAC-SHA256 hash ([`src/auth.js`](src/auth.js), checked against Node's `crypto` in the tests). Sign-in creates a random 256-bit session token that expires after 8 hours, and logging out deletes it. On the Node server the token lives only in an `HttpOnly`, `SameSite=Strict` cookie, so page scripts can't read it; the static live demo has no server, so it keeps the token in `localStorage`. Reports and document deletion return `401` without a session.
+- **Staff sign-in.** Passwords are never stored: each account keeps a random salt and a PBKDF2-HMAC-SHA256 hash ([`src/auth.js`](src/auth.js), checked against Node's `crypto` in the tests). Sign-in creates a random 256-bit session token that expires after 8 hours, and logging out deletes it. On the Node server the token lives only in an `HttpOnly`, `SameSite=Strict` cookie, so page scripts can't read it; the static live demo has no server, so it keeps the token in `localStorage`. Several roles share the "Gotham Staff" username, so sign-in checks the password against each role's hash and the match decides the role. Each role's permissions ([`src/seed/staff.js`](src/seed/staff.js)) are checked by the router on every request, and the front end uses the same list to hide tabs and buttons.
 - **The live demo** builds the clinic in the browser on first visit (about 2 seconds), then saves the database in IndexedDB after each change, so bookings and new patients survive a refresh. "Reset demo data" starts over.
 
 ## SQL highlights
@@ -110,7 +115,7 @@ npm run preview      # try that version at http://localhost:4000
 
 ## Notes
 
-- The demo staff password is public on purpose. A real deployment would add sign-in rate limiting, HTTPS and accounts managed by an administrator.
+- The demo passwords are public on purpose. A real deployment would add sign-in rate limiting, HTTPS and accounts managed by an administrator.
 - All people, phone numbers (555-01xx), addresses, insurance plans and medical details are fictional. Do not enter real health information; this is a portfolio demo, not a HIPAA-compliant system.
 - Patient names are DC Comics characters used for fun. Gotham Hospital is not affiliated with DC.
 - sql.js 1.10.3 (MIT) is included in [`public/vendor/`](public/vendor).

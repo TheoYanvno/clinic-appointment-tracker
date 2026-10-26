@@ -3,7 +3,7 @@
 // All queries are parameterized (?) so user input is never pasted into SQL.
 import { seedDatabase } from './seed/generate.js';
 import { weekdayOf, toMinutes, toTime } from './schedule.js';
-import { STAFF } from './seed/staff.js';
+import { STAFF, USERNAME } from './seed/staff.js';
 import { checkPassword, randomHex } from './auth.js';
 
 const SESSION_HOURS = 8;
@@ -29,6 +29,9 @@ export class ClinicRepository {
 
   /** Creates the tables; fills in sample data only if the database is empty. */
   init({ schema, seed = true, ...seedOptions }) {
+    // Databases saved before role-based sign-in have the old staff table: rebuild it (and sessions)
+    const oldStaff = this.db.get("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'staff'");
+    if (oldStaff && !oldStaff.sql.includes('customer_service')) this.db.exec('DROP TABLE IF EXISTS sessions; DROP TABLE staff;');
     this.db.exec(schema);
     const { n } = this.db.get('SELECT COUNT(*) AS n FROM providers');
     if (seed && n === 0) seedDatabase(this.db, seedOptions);     // { today, now, generatedPatients }
@@ -36,7 +39,7 @@ export class ClinicRepository {
     if (seed && this.db.get('SELECT COUNT(*) AS n FROM staff').n === 0) {
       for (const s of STAFF) {
         this.db.run('INSERT INTO staff (username, display_name, role, password_salt, password_hash, iterations) VALUES (?, ?, ?, ?, ?, ?)',
-          [s.username, s.name, s.role, s.salt, s.hash, s.iterations]);
+          [USERNAME, s.name, s.role, s.salt, s.hash, s.iterations]);
       }
     }
     return this;
@@ -319,10 +322,14 @@ export class ClinicRepository {
 
   // ---------- Staff sign-in ----------
 
-  /** Checks a username and password; returns a new session, or null when either is wrong. */
+  /**
+   * Checks a username and password; returns a new session, or null when either is wrong.
+   * Several roles share one username, so the password picks the account (and with it the role).
+   */
   signIn(username, password, now) {
-    const row = this.db.get('SELECT id, password_salt AS salt, password_hash AS hash, iterations FROM staff WHERE username = ?', [String(username).trim()]);
-    if (!row || !checkPassword(String(password), row)) return null;
+    const rows = this.db.all('SELECT id, password_salt AS salt, password_hash AS hash, iterations FROM staff WHERE username = ?', [String(username).trim()]);
+    const row = rows.find((r) => checkPassword(String(password), r));
+    if (!row) return null;
     const token = randomHex(32);
     const expires = new Date(new Date(now.replace(' ', 'T')).getTime() + SESSION_HOURS * 3600e3);
     const pad = (n) => String(n).padStart(2, '0');

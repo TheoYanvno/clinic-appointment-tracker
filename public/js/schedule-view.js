@@ -4,6 +4,7 @@ import { api } from './api.js';
 import { $, $$, esc, today, now, dayName, monthName, longDate, shortDate, clockTime, credentialBadge, STATUS_LABELS } from './ui.js';
 import { weekOf, monthGrid, addDays, weekdayOf, toMinutes, toTime } from '../src/schedule.js';
 import { openBooking } from './booking.js';
+import { can } from './staff.js';
 import { openAppointment } from './appointment.js';
 
 const OPEN = toMinutes('08:00');
@@ -43,7 +44,7 @@ export async function renderSchedule(main, params) {
   main.innerHTML = `
     <div class="page-head">
       <h1>Schedule</h1>
-      <button class="btn primary" id="newAppt">+ Book appointment</button>
+      <button class="cs-only btn primary" id="newAppt">+ Book appointment</button>
     </div>
     <div class="toolbar">
       <label class="visually-hidden" for="providerPick">Provider</label>
@@ -215,6 +216,6 @@ function wire(body, providerId, refresh) {
     const appt = e.target.closest('[data-appt]');
     if (appt) return openAppointment(Number(appt.dataset.appt), refresh);
     const cell = e.target.closest('[data-time]');
-    if (cell) openBooking({ providerId: Number(cell.dataset.provider ?? providerId), date: cell.dataset.date, time: cell.dataset.time }, refresh);
+    if (cell && can('schedule:write')) openBooking({ providerId: Number(cell.dataset.provider ?? providerId), date: cell.dataset.date, time: cell.dataset.time }, refresh);
   };
 }

@@ -6,14 +6,25 @@ import { renderPatientList, renderPatient } from './patients-view.js';
 import { renderPatientForm } from './patient-form.js';
 import { renderProviders } from './providers-view.js';
 import { renderReports } from './reports-view.js';
-import { initStaff, staff, openSignIn, onStaffChange } from './staff.js';
+import { initStaff, staff, can, onStaffChange } from './staff.js';
 
 const main = $('#view');
 
+// Each tab and the permission it needs; the first one a role can use is its home page.
+const SECTIONS = { schedule: 'schedule:read', patients: 'patients', providers: 'schedule:read', reports: 'reports' };
+const HOME = { customer_service: 'schedule', medical_staff: 'patients' };
+
 async function route() {
-  const [path, query = ''] = (location.hash.slice(1) || '/schedule').split('?');
+  if (!staff()) { main.innerHTML = ''; return; }                // the sign-in screen is showing
+  $$('.tabs a').forEach((a) => { a.hidden = !can(SECTIONS[a.dataset.tab]); });
+  const home = HOME[staff().role] ?? 'schedule';
+  let [path, query = ''] = (location.hash.slice(1) || `/${home}`).split('?');
+  let [, section, id, action] = path.split('/');
+  if (!can(SECTIONS[section])) {                                 // not this role's page: go home instead
+    history.replaceState(null, '', `#/${home}`);
+    [path, query, section, id, action] = [`/${home}`, '', home, undefined, undefined];
+  }
   const params = Object.fromEntries(new URLSearchParams(query));
-  const [, section, id, action] = path.split('/');
   $$('.tabs a').forEach((a) => (a.dataset.tab === section ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
   try {
     if (section === 'patients' && id === 'new') await renderPatientForm(main);
@@ -21,10 +32,6 @@ async function route() {
     else if (section === 'patients' && id) await renderPatient(main, Number(id));
     else if (section === 'patients') await renderPatientList(main, params);
     else if (section === 'providers') await renderProviders(main, params);
-    else if (section === 'reports' && !staff()) {
-      main.innerHTML = `<p class="empty">Reports are for clinic staff. <button type="button" class="btn primary" id="reportsSignIn">Staff sign-in</button></p>`;
-      $('#reportsSignIn').onclick = openSignIn;
-    }
     else if (section === 'reports') await renderReports(main, params);
     else await renderSchedule(main, params);
   } catch (err) {
@@ -58,10 +65,7 @@ addEventListener('hashchange', () => {
 });
 tick();
 setInterval(tick, 30000);
-// Re-draw when staff sign in or out, so the Reports page and Delete buttons update straight away
-onStaffChange((who) => {
-  if (!who && location.hash.startsWith('#/reports')) location.hash = '#/schedule';
-  else if (location.hash.startsWith('#/reports')) route();
-});
+// Signing in or out swaps between the sign-in screen and that role's portal
+onStaffChange(() => { scrollTo(0, 0); route(); });
 await initStaff();
 route();

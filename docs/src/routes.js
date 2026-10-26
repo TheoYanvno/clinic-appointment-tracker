@@ -4,6 +4,7 @@
 import { validateAppointment, validatePatient, validatePhoto, validateDocument, isValidStatus } from './validation.js';
 import { toBase64, fromBase64 } from './base64.js';
 import { toDateString, nowString } from './schedule.js';
+import { PERMISSIONS } from './seed/staff.js';
 
 const ok = (body, status = 200) => ({ status, body });
 const fail = (status, ...errors) => ({ status, body: { errors } });
@@ -18,12 +19,26 @@ function friendly(err) {
   return msg;
 }
 
-const STAFF_ONLY = 'Staff sign-in required';
+const SIGN_IN = 'Please sign in';
+const NOT_ALLOWED = 'Your sign-in does not have access to this';
+
+// Which permission each part of the API needs (see PERMISSIONS in src/seed/staff.js).
+// Customer service can see patient names to book visits, but only medical staff can open a patient's chart.
+const RULES = [
+  [/^\/api\/reports\//, () => 'reports'],
+  [/^\/api\/documents\/\d+$/, (method) => (method === 'DELETE' ? 'documents:delete' : 'patients')],
+  [/^\/api\/patients$/, (method) => (method === 'GET' ? 'patients:search' : 'patients')],
+  [/^\/api\/patients\//, () => 'patients'],
+  [/^\/api\/appointments(\/|$)/, (method) => (method === 'GET' ? 'schedule:read' : 'schedule:write')],
+  [/^\/api\/(clinic|providers)(\/|$)/, () => 'schedule:read'],
+];
+
+export const can = (staff, permission) => Boolean(staff && PERMISSIONS[staff.role]?.includes(permission));
 
 /**
  * `token` is the staff session, if any: the Node server reads it from an HttpOnly cookie,
- * the live demo from this browser's storage. Patients, schedules and providers are open to everyone;
- * reports and deleting documents need a signed-in staff member.
+ * the live demo from this browser's storage. Everything except signing in needs a session (401),
+ * and the session's role must allow the request (403).
  */
 export function handle(repo, { method = 'GET', path, query = {}, body = {}, token = null, today = toDateString(new Date()), now = nowString() }) {
   const route = (verb, pattern) => {
@@ -46,6 +61,13 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toke
       return ok({ ok: true });
     }
     if (route('GET', /^\/api\/me$/)) return ok({ staff });      // null when signed out (not an error)
+
+    // ---- Everything below needs a signed-in role that's allowed to do it
+    const rule = RULES.find(([pattern]) => pattern.test(path));
+    if (rule) {
+      if (!staff) return fail(401, SIGN_IN);
+      if (!can(staff, rule[1](method))) return fail(403, NOT_ALLOWED);
+    }
 
     // ---- Clinic and providers
     if (route('GET', /^\/api\/clinic$/)) return ok({ hours: repo.clinicHours(), summary: repo.summary(today), today, now });
@@ -103,7 +125,6 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toke
       return ok({ ...meta, dataBase64: toBase64(data) });
     }
     if ((params = route('DELETE', /^\/api\/documents\/(\d+)$/))) {
-      if (!staff) return fail(401, STAFF_ONLY);
       return repo.deleteDocument(params[0]) ? ok({ ok: true }) : fail(404, 'Document not found');
     }
 
@@ -139,7 +160,7 @@ export function handle(repo, { method = 'GET', path, query = {}, body = {}, toke
     }
 
     // ---- Reports
-    if (route('GET', /^\/api\/reports\/workload$/)) return !staff ? fail(401, STAFF_ONLY) : ok(repo.providerWorkload({ from: query.from, to: query.to }));
+    if (route('GET', /^\/api\/reports\/workload$/)) return ok(repo.providerWorkload({ from: query.from, to: query.to }));
 
     return fail(404, 'Not found');
   } catch (err) {
