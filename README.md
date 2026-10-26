@@ -15,6 +15,8 @@ A clinic scheduling and patient records app for a busy outpatient clinic, based 
 | ![Patient profile](docs/screenshots/patient-profile.png) | ![Documents](docs/screenshots/documents.png) |
 | **Booking into open times** | **36 providers** |
 | ![Booking](docs/screenshots/booking.png) | ![Providers](docs/screenshots/providers.png) |
+| **Staff sign-in (loads first)** | **Bat-Family Records (third password)** |
+| ![Sign-in](docs/screenshots/sign-in.png) | ![Bat-Family Records](docs/screenshots/bat-family-records.png) |
 
 ## Features
 
