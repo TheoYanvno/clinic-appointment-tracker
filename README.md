@@ -1,6 +1,6 @@
-# Gotham Hospital Patient Portal
+# Gotham Hospital System
 
-**▶ [Live demo](https://theoyanvno.github.io/clinic-appointment-tracker/)**
+**▶ [Live demo](https://theoyanvno.github.io/gotham-hospital-system/)**
 
 A clinic scheduling and patient records app for a busy outpatient clinic, based on my work as a Senior Medical Assistant. Gotham Hospital has 36 providers (physicians, nurse practitioners and physician assistants) open Monday–Friday, about 2,400 patients and six weeks of appointments. Staff can view any provider's schedule by day, week or month, book visits into open times, check patients in, and keep patient profiles with insurance, a photo and uploaded medical documents.
 
@@ -124,4 +124,8 @@ npm run preview      # try that version at http://localhost:4000
 - Patient names are DC Comics characters used for fun. Gotham Hospital is not affiliated with DC.
 - sql.js 1.10.3 (MIT) is included in [`public/vendor/`](public/vendor).
 
-Built with help from AI coding tools for planning, code review and tests.
+## Credits
+
+- Built by Anthony Evo.
+- Claude, Anthropic's AI assistant, came up with the fictional patient information, provider information and Bat-family medical histories, and tested the code.
+- Built with help from AI coding tools for planning, code review and tests.
